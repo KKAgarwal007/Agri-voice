@@ -1,0 +1,93 @@
+# ==================== DEPENDENCIES ====================
+node_modules/
+.pnp
+.pnp.js
+
+# ==================== ENVIRONMENT VARIABLES ====================
+# Do NOT commit real secrets - use .env.example as a template
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+client/.env
+server/.env
+
+# ==================== BUILD OUTPUTS ====================
+dist/
+build/
+.vite/
+out/
+
+# ==================== LOGS ====================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ==================== EDITOR ====================
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ==================== OS FILES ====================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ==================== TESTING ====================
+coverage/
+*.lcov
+.nyc_output/
+
+# ==================== CACHE & TEMP ====================
+*.tmp
+*.temp
+.cache/
+.temp/
+.parcel-cache/
+.eslintcache
+
+# ==================== DATABASE ====================
+*.db
+*.sqlite
+*.sqlite3
+
+# ==================== UPLOADS ====================
+uploads/
+public/uploads/
+
+# ==================== FIREBASE ====================
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+.firebaserc
+
+# ==================== SOCKET.IO ====================
+socket.io-debug.log
+
+# ==================== SECURITY ====================
+*.pem
+*.key
+*.cert
+*.p12
+*.pfx
+
+# ==================== MISC ====================
+*.local

@@ -154,7 +154,7 @@ const VoiceAssistant = ({ isOpen, onClose }) => {
 
   const handleSubmit = async (e) => {
     e?.preventDefault();
-    
+
     if (!input.trim()) return;
     if (!isOnline) {
       setMessages((prev) => [
@@ -181,7 +181,7 @@ const VoiceAssistant = ({ isOpen, onClose }) => {
       // Add language context to the query
       const langName = languages.find(l => l.code === selectedLanguage)?.name || 'Hindi';
       const contextualMessage = `User is asking in ${langName}. Please respond in the same language naturally. Query: ${currentInput}`;
-      
+
       const response = await sendChatMessage(contextualMessage);
 
       const assistantMessage = {
@@ -252,13 +252,12 @@ const VoiceAssistant = ({ isOpen, onClose }) => {
             </div>
             <div className="flex items-center gap-2">
               {/* Online Status */}
-              <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs ${
-                isOnline ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'
-              }`}>
+              <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs ${isOnline ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'
+                }`}>
                 {isOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
                 {isOnline ? 'Online' : 'Offline'}
               </div>
-              
+
               {/* Language Selector */}
               <div className="relative">
                 <motion.button
@@ -290,9 +289,8 @@ const VoiceAssistant = ({ isOpen, onClose }) => {
                             setSelectedLanguage(lang.code);
                             setShowLanguages(false);
                           }}
-                          className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-white/10 transition-colors ${
-                            selectedLanguage === lang.code ? 'bg-violet-500/20 text-violet-400' : 'text-white/70'
-                          }`}
+                          className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-white/10 transition-colors ${selectedLanguage === lang.code ? 'bg-violet-500/20 text-violet-400' : 'text-white/70'
+                            }`}
                         >
                           <span>{lang.flag}</span>
                           <span>{lang.name}</span>
@@ -333,13 +331,11 @@ const VoiceAssistant = ({ isOpen, onClose }) => {
                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[85%] ${
-                    message.role === 'user'
+                  className={`max-w-[85%] ${message.role === 'user'
                       ? 'bg-gradient-to-br from-violet-500 to-purple-500 text-white'
                       : 'glass text-white'
-                  } rounded-2xl p-4 ${
-                    message.role === 'user' ? 'rounded-br-md' : 'rounded-bl-md'
-                  }`}
+                    } rounded-2xl p-4 ${message.role === 'user' ? 'rounded-br-md' : 'rounded-bl-md'
+                    }`}
                 >
                   <div className="flex items-start gap-2">
                     {message.role === 'assistant' && (
@@ -440,13 +436,12 @@ const VoiceAssistant = ({ isOpen, onClose }) => {
                 whileTap={{ scale: 0.9 }}
                 onClick={toggleListening}
                 disabled={!isOnline}
-                className={`p-3 rounded-xl transition-all flex-shrink-0 ${
-                  isListening
+                className={`p-3 rounded-xl transition-all flex-shrink-0 ${isListening
                     ? 'bg-red-500 recording-indicator'
                     : isOnline
-                    ? 'bg-gradient-to-r from-violet-500 to-purple-500'
-                    : 'bg-gray-500/50 cursor-not-allowed'
-                }`}
+                      ? 'bg-gradient-to-r from-violet-500 to-purple-500'
+                      : 'bg-gray-500/50 cursor-not-allowed'
+                  }`}
                 title={isListening ? 'Stop listening' : 'Start voice input'}
               >
                 {isListening ? (
@@ -462,11 +457,10 @@ const VoiceAssistant = ({ isOpen, onClose }) => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 disabled={loading || !input.trim() || !isOnline}
-                className={`p-3 rounded-xl flex-shrink-0 transition-all ${
-                  input.trim() && isOnline
+                className={`p-3 rounded-xl flex-shrink-0 transition-all ${input.trim() && isOnline
                     ? 'bg-gradient-to-r from-violet-500 to-purple-500 shadow-lg'
                     : 'bg-white/10'
-                }`}
+                  }`}
               >
                 <Send className={`w-5 h-5 ${input.trim() && isOnline ? 'text-white' : 'text-white/40'}`} />
               </motion.button>

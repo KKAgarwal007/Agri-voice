@@ -33,7 +33,7 @@ const VoiceAIChat = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
-  
+
   // Camera state
   const [showCamera, setShowCamera] = useState(false);
 
@@ -163,7 +163,7 @@ const VoiceAIChat = () => {
 
   const handleSubmit = async (e) => {
     e?.preventDefault();
-    
+
     if (!input.trim() && !selectedImage) return;
 
     const userMessage = {
@@ -296,13 +296,11 @@ const VoiceAIChat = () => {
                   className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-[85%] ${
-                      message.role === 'user'
+                    className={`max-w-[85%] ${message.role === 'user'
                         ? 'bg-gradient-to-br from-emerald-500 to-cyan-500 text-white'
                         : 'glass text-white'
-                    } rounded-2xl p-4 ${
-                      message.role === 'user' ? 'rounded-br-md' : 'rounded-bl-md'
-                    }`}
+                      } rounded-2xl p-4 ${message.role === 'user' ? 'rounded-br-md' : 'rounded-bl-md'
+                      }`}
                   >
                     {/* User avatar or bot icon */}
                     <div className="flex items-start gap-2">
@@ -366,32 +364,32 @@ const VoiceAIChat = () => {
             {/* Camera View */}
             <AnimatePresence>
               {showCamera && (
-                 <motion.div 
-                   initial={{ opacity: 0, height: 0 }}
-                   animate={{ opacity: 1, height: 280 }}
-                   exit={{ opacity: 0, height: 0 }}
-                   className="bg-black relative overflow-hidden flex-shrink-0"
-                 >
-                    <Webcam
-                      ref={webcamRef}
-                      audio={false}
-                      screenshotFormat="image/jpeg"
-                      videoConstraints={videoConstraints}
-                      className="w-full h-full object-cover"
-                    />
-                    <button 
-                      onClick={captureImage}
-                      className="absolute bottom-4 left-1/2 transform -translate-x-1/2 w-14 h-14 rounded-full border-4 border-white flex items-center justify-center p-1"
-                    >
-                      <div className="w-full h-full bg-white rounded-full"></div>
-                    </button>
-                    <button
-                      onClick={() => setShowCamera(false)}
-                      className="absolute top-2 right-2 p-1 bg-black/50 rounded-full"
-                    >
-                      <X className="w-5 h-5 text-white" />
-                    </button>
-                 </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 280 }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="bg-black relative overflow-hidden flex-shrink-0"
+                >
+                  <Webcam
+                    ref={webcamRef}
+                    audio={false}
+                    screenshotFormat="image/jpeg"
+                    videoConstraints={videoConstraints}
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    onClick={captureImage}
+                    className="absolute bottom-4 left-1/2 transform -translate-x-1/2 w-14 h-14 rounded-full border-4 border-white flex items-center justify-center p-1"
+                  >
+                    <div className="w-full h-full bg-white rounded-full"></div>
+                  </button>
+                  <button
+                    onClick={() => setShowCamera(false)}
+                    className="absolute top-2 right-2 p-1 bg-black/50 rounded-full"
+                  >
+                    <X className="w-5 h-5 text-white" />
+                  </button>
+                </motion.div>
               )}
             </AnimatePresence>
 
@@ -432,7 +430,7 @@ const VoiceAIChat = () => {
                   accept="image/*"
                   className="hidden"
                 />
-                
+
                 <motion.button
                   type="button"
                   whileHover={{ scale: 1.1 }}
@@ -480,11 +478,10 @@ const VoiceAIChat = () => {
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={toggleListening}
-                  className={`p-3 rounded-xl transition-colors flex-shrink-0 ${
-                    isListening
+                  className={`p-3 rounded-xl transition-colors flex-shrink-0 ${isListening
                       ? 'bg-red-500 recording-indicator'
                       : 'hover:bg-white/10'
-                  }`}
+                    }`}
                   title={isListening ? 'Stop listening' : 'Start voice input'}
                 >
                   {isListening ? (
@@ -500,11 +497,10 @@ const VoiceAIChat = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   disabled={loading || (!input.trim() && !selectedImage)}
-                  className={`p-3 rounded-xl flex-shrink-0 transition-all ${
-                    input.trim() || selectedImage
+                  className={`p-3 rounded-xl flex-shrink-0 transition-all ${input.trim() || selectedImage
                       ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 shadow-lg'
                       : 'bg-white/10'
-                  }`}
+                    }`}
                 >
                   <Send className={`w-5 h-5 ${input.trim() || selectedImage ? 'text-white' : 'text-white/40'}`} />
                 </motion.button>

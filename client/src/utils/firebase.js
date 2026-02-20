@@ -1,14 +1,14 @@
 // Firebase configuration for Google Authentication
-// The app works WITHOUT Firebase - users can continue as guest
-// To enable Google Auth, follow setup instructions below
 
 import { initializeApp, getApps } from 'firebase/app';
-import { 
-  getAuth, 
-  GoogleAuthProvider, 
-  signInWithPopup, 
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut,
-  onAuthStateChanged 
+  onAuthStateChanged,
 } from 'firebase/auth';
 
 // Firebase config from environment variables
@@ -18,37 +18,47 @@ const firebaseConfig = {
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-// Check if Firebase is properly configured
+// Verify all required keys exist and are real values
 const isFirebaseConfigured = () => {
-  return firebaseConfig.apiKey && 
-         firebaseConfig.apiKey !== 'undefined' && 
-         !firebaseConfig.apiKey.includes('your_');
+  const required = ['apiKey', 'authDomain', 'projectId', 'appId'];
+  return required.every(
+    (key) =>
+      firebaseConfig[key] &&
+      firebaseConfig[key] !== 'undefined' &&
+      !String(firebaseConfig[key]).startsWith('your_')
+  );
 };
 
-// Initialize Firebase only if configured
+// Initialize Firebase
 let app = null;
 let auth = null;
 let googleProvider = null;
 
-if (isFirebaseConfigured()) {
-  try {
+try {
+  if (isFirebaseConfigured()) {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
     auth = getAuth(app);
+
+    // Persist session across tabs/refreshes
+    // (Firebase default is 'local' – persists across browser sessions)
+
     googleProvider = new GoogleAuthProvider();
     googleProvider.addScope('profile');
     googleProvider.addScope('email');
-    console.log('✅ Firebase initialized');
-  } catch (error) {
-    console.warn('Firebase initialization failed:', error.message);
+    googleProvider.setCustomParameters({ prompt: 'select_account' });
+
+    console.log('✅ Firebase initialized successfully');
+  } else {
+    console.warn('⚠️ Firebase not configured – add VITE_FIREBASE_* keys to .env');
   }
-} else {
-  console.log('ℹ️ Firebase not configured - Google Sign-in disabled');
+} catch (error) {
+  console.error('❌ Firebase initialization error:', error.message);
 }
 
-// Sign in with Google
+// ─── Sign in with Google (popup, falls back to redirect on mobile) ────────────
 export const signInWithGoogle = async () => {
   if (!auth || !googleProvider) {
     throw new Error('FIREBASE_NOT_CONFIGURED');
@@ -56,30 +66,37 @@ export const signInWithGoogle = async () => {
 
   try {
     const result = await signInWithPopup(auth, googleProvider);
-    const user = result.user;
-    const idToken = await user.getIdToken();
-    
-    return {
-      user: {
-        uid: user.uid,
-        name: user.displayName,
-        email: user.email,
-        photoURL: user.photoURL
-      },
-      idToken
-    };
+    return extractUserData(result);
   } catch (error) {
-    console.error('Google sign-in error:', error);
+    // Popup blocked (common on mobile/Safari) → fall back to redirect
+    if (
+      error.code === 'auth/popup-blocked' ||
+      error.code === 'auth/popup-cancelled-by-browser'
+    ) {
+      await signInWithRedirect(auth, googleProvider);
+      return null; // page will redirect; result handled in handleRedirectResult
+    }
     throw error;
   }
 };
 
-// Sign out
+// ─── Handle redirect result (call this on app startup) ───────────────────────
+export const handleRedirectResult = async () => {
+  if (!auth) return null;
+  try {
+    const result = await getRedirectResult(auth);
+    if (result) return extractUserData(result);
+    return null;
+  } catch (error) {
+    console.error('Redirect result error:', error);
+    throw error;
+  }
+};
+
+// ─── Sign out ─────────────────────────────────────────────────────────────────
 export const signOutUser = async () => {
   try {
-    if (auth) {
-      await signOut(auth);
-    }
+    if (auth) await signOut(auth);
     localStorage.removeItem('agri_token');
     localStorage.removeItem('agri_user');
   } catch (error) {
@@ -88,22 +105,38 @@ export const signOutUser = async () => {
   }
 };
 
-// Check if Firebase is available
-export const isFirebaseAvailable = () => {
-  return !!auth && !!googleProvider;
-};
-
-// Get current user
-export const getCurrentFirebaseUser = () => {
-  return auth?.currentUser || null;
-};
-
-// Auth state listener
+// ─── Auth state listener ──────────────────────────────────────────────────────
 export const onAuthChange = (callback) => {
-  if (auth) {
-    return onAuthStateChanged(auth, callback);
+  if (!auth) {
+    callback(null);
+    return () => { };
   }
-  return () => {}; // No-op unsubscribe
+  return onAuthStateChanged(auth, callback);
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+export const isFirebaseAvailable = () => !!auth && !!googleProvider;
+export const getCurrentFirebaseUser = () => auth?.currentUser || null;
+
+function extractUserData(result) {
+  const user = result.user;
+  return {
+    firebaseUser: user,
+    user: {
+      uid: user.uid,
+      name: user.displayName,
+      email: user.email,
+      photoURL: user.photoURL,
+    },
+    idToken: null, // fetched separately when needed
+  };
+}
+
+// Async helper used by AuthModal to get a fresh ID token
+export const getIdToken = async () => {
+  const user = auth?.currentUser;
+  if (!user) return null;
+  return user.getIdToken(true);
 };
 
 export { auth };

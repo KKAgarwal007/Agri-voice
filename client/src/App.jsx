@@ -9,28 +9,53 @@ import CropDiseaseScanner from './components/CropDiseaseScanner';
 import VoiceAssistant from './components/VoiceAssistant';
 import MarketPrices from './components/MarketPrices';
 import CommunityHub from './components/CommunityHub';
-import { getCurrentUser, isAuthenticated } from './utils/api';
+import { getCurrentUser } from './utils/api';
+import { onAuthChange, signOutUser } from './utils/firebase';
 
 function App() {
   const [showCropSearch, setShowCropSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [user, setUser] = useState(null);
-  
-  // New modal states
+
+  // Modal states
   const [showDiseaseScanner, setShowDiseaseScanner] = useState(false);
   const [showVoiceAssistant, setShowVoiceAssistant] = useState(false);
   const [showMarketPrices, setShowMarketPrices] = useState(false);
   const [showCommunityHub, setShowCommunityHub] = useState(false);
 
-  // Check for existing user session on mount
+  // Load persisted user on mount + subscribe to Firebase auth changes
   useEffect(() => {
-    if (isAuthenticated()) {
-      const storedUser = getCurrentUser();
-      if (storedUser) {
-        setUser(storedUser);
+    // 1. Restore persisted session immediately (guest or JWT-based)
+    const storedUser = getCurrentUser();
+    if (storedUser) setUser(storedUser);
+
+    // 2. Subscribe to live Firebase auth state (Google sign-in / sign-out)
+    const unsubscribe = onAuthChange((firebaseUser) => {
+      if (firebaseUser) {
+        // Firebase user is signed in – read our synced data from localStorage
+        const synced = getCurrentUser();
+        if (synced) {
+          setUser(synced);
+        } else {
+          // Minimal fallback from Firebase user object
+          setUser({
+            id: firebaseUser.uid,
+            name: firebaseUser.displayName,
+            email: firebaseUser.email,
+            photoURL: firebaseUser.photoURL,
+          });
+        }
+      } else {
+        // Firebase user signed out – clear everything
+        const stored = getCurrentUser();
+        if (stored && !stored.isGuest) {
+          setUser(null);
+        }
       }
-    }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const handleSearch = (query) => {
@@ -40,30 +65,27 @@ function App() {
 
   const handleAuthSuccess = () => {
     const storedUser = getCurrentUser();
-    setUser(storedUser);
+    if (storedUser) setUser(storedUser);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await signOutUser(); // signs out of Firebase + clears localStorage
+    } catch (_) {
+      // Even if Firebase signOut fails, clear local state
+      localStorage.removeItem('agri_token');
+      localStorage.removeItem('agri_user');
+    }
     setUser(null);
   };
 
-  // Handle feature card clicks
   const handleFeatureClick = (feature) => {
     switch (feature) {
-      case 'disease-scanner':
-        setShowDiseaseScanner(true);
-        break;
-      case 'voice-assistant':
-        setShowVoiceAssistant(true);
-        break;
-      case 'market-prices':
-        setShowMarketPrices(true);
-        break;
-      case 'community-hub':
-        setShowCommunityHub(true);
-        break;
-      default:
-        break;
+      case 'disease-scanner': setShowDiseaseScanner(true); break;
+      case 'voice-assistant': setShowVoiceAssistant(true); break;
+      case 'market-prices': setShowMarketPrices(true); break;
+      case 'community-hub': setShowCommunityHub(true); break;
+      default: break;
     }
   };
 
@@ -77,8 +99,8 @@ function App() {
       </div>
 
       {/* Navigation */}
-      <Navigation 
-        onSearch={handleSearch} 
+      <Navigation
+        onSearch={handleSearch}
         onAuthClick={() => setShowAuthModal(true)}
         user={user}
         onLogout={handleLogout}
@@ -94,10 +116,7 @@ function App() {
         {showCropSearch && (
           <CropSearch
             initialQuery={searchQuery}
-            onClose={() => {
-              setShowCropSearch(false);
-              setSearchQuery('');
-            }}
+            onClose={() => { setShowCropSearch(false); setSearchQuery(''); }}
           />
         )}
       </AnimatePresence>

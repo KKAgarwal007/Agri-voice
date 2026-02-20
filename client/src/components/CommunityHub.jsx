@@ -40,24 +40,24 @@ const CommunityHub = ({ isOpen, onClose, user }) => {
   const [newPost, setNewPost] = useState('');
   const [postImage, setPostImage] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
-  
+
   // Payment states
   const [walletBalance, setWalletBalance] = useState(10000);
   const [transactions, setTransactions] = useState([]);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
-  
+
   // Loan states
   const [loans, setLoans] = useState([]);
   const [newLoanAmount, setNewLoanAmount] = useState('');
   const [newLoanInterest, setNewLoanInterest] = useState('5');
   const [newLoanDuration, setNewLoanDuration] = useState('30');
-  
+
   // Call states
   const [inCall, setInCall] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [callPartner, setCallPartner] = useState(null);
-  
+
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const localStreamRef = useRef(null);
@@ -65,70 +65,83 @@ const CommunityHub = ({ isOpen, onClose, user }) => {
 
   // Initialize Socket.io connection
   useEffect(() => {
-    if (isOpen && !socket) {
-      const newSocket = io(SOCKET_URL, {
-        transports: ['websocket', 'polling'],
-        autoConnect: true,
-      });
-
-      newSocket.on('connect', () => {
-        setIsConnected(true);
-        newSocket.emit('join-community', {
-          userId: user?.id || 'guest_' + Date.now(),
-          userName: user?.name || 'Guest Farmer',
-          avatar: user?.photoURL || null
-        });
-      });
-
-      newSocket.on('disconnect', () => {
-        setIsConnected(false);
-      });
-
-      newSocket.on('online-users', (users) => {
-        setOnlineUsers(users);
-      });
-
-      newSocket.on('new-message', (message) => {
-        setMessages((prev) => [...prev, message]);
-      });
-
-      newSocket.on('new-post', (post) => {
-        setPosts((prev) => [post, ...prev]);
-      });
-
-      newSocket.on('payment-received', (payment) => {
-        setWalletBalance((prev) => prev + payment.amount);
-        setTransactions((prev) => [payment, ...prev]);
-      });
-
-      newSocket.on('loan-request', (loan) => {
-        setLoans((prev) => [loan, ...prev]);
-      });
-
-      // WebRTC signaling
-      newSocket.on('call-offer', async (data) => {
-        setCallPartner(data.from);
-        // Handle incoming call
-      });
-
-      newSocket.on('call-answer', async (data) => {
-        // Handle call answer
-      });
-
-      newSocket.on('ice-candidate', async (data) => {
-        // Handle ICE candidate
-      });
-
-      setSocket(newSocket);
-
-      // Load mock data
-      loadMockData();
-    }
-
-    return () => {
+    if (!isOpen) {
+      // Disconnect and clean up when modal closes
       if (socket) {
         socket.disconnect();
+        setSocket(null);
+        setIsConnected(false);
+        setOnlineUsers([]);
+        setMessages([]);
       }
+      return;
+    }
+
+    // Only create a new socket if one doesn't already exist
+    if (socket) return;
+
+    const newSocket = io(SOCKET_URL, {
+      transports: ['websocket', 'polling'],
+      autoConnect: true,
+    });
+
+    newSocket.on('connect', () => {
+      setIsConnected(true);
+      newSocket.emit('join-community', {
+        userId: user?.id || 'guest_' + Date.now(),
+        userName: user?.name || 'Guest Farmer',
+        avatar: user?.photoURL || null
+      });
+    });
+
+    newSocket.on('disconnect', () => {
+      setIsConnected(false);
+    });
+
+    newSocket.on('online-users', (users) => {
+      // Server stores users with 'userName' key; normalize to 'name' for rendering
+      setOnlineUsers(users.map(u => ({ ...u, name: u.name || u.userName || 'User' })));
+    });
+
+    newSocket.on('new-message', (message) => {
+      setMessages((prev) => [...prev, message]);
+    });
+
+    newSocket.on('new-post', (post) => {
+      setPosts((prev) => [post, ...prev]);
+    });
+
+    newSocket.on('payment-received', (payment) => {
+      setWalletBalance((prev) => prev + payment.amount);
+      setTransactions((prev) => [payment, ...prev]);
+    });
+
+    newSocket.on('loan-request', (loan) => {
+      setLoans((prev) => [loan, ...prev]);
+    });
+
+    // WebRTC signaling
+    newSocket.on('call-offer', async (data) => {
+      setCallPartner(data.from);
+      // Handle incoming call
+    });
+
+    newSocket.on('call-answer', async (_data) => {
+      // Handle call answer
+    });
+
+    newSocket.on('ice-candidate', async (_data) => {
+      // Handle ICE candidate
+    });
+
+    setSocket(newSocket);
+
+    // Load mock data
+    loadMockData();
+
+    // Cleanup on unmount
+    return () => {
+      newSocket.disconnect();
     };
   }, [isOpen]);
 
@@ -205,7 +218,7 @@ const CommunityHub = ({ isOpen, onClose, user }) => {
   // Send message
   const sendMessage = () => {
     if (!newMessage.trim()) return;
-    
+
     const message = {
       id: Date.now(),
       user: user?.name || 'Guest',
@@ -381,9 +394,8 @@ const CommunityHub = ({ isOpen, onClose, user }) => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative ${
-                  activeTab === tab.id ? 'text-white' : 'text-white/50 hover:text-white/70'
-                }`}
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative ${activeTab === tab.id ? 'text-white' : 'text-white/50 hover:text-white/70'
+                  }`}
               >
                 <tab.icon className="w-4 h-4" />
                 {tab.label}
@@ -549,9 +561,8 @@ const CommunityHub = ({ isOpen, onClose, user }) => {
                       {transactions.map((tx) => (
                         <div key={tx.id} className="flex items-center justify-between p-3 rounded-xl bg-white/5">
                           <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                              tx.type === 'received' ? 'bg-emerald-500/20' : 'bg-red-500/20'
-                            }`}>
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${tx.type === 'received' ? 'bg-emerald-500/20' : 'bg-red-500/20'
+                              }`}>
                               {tx.type === 'received' ? (
                                 <TrendingUp className="w-5 h-5 text-emerald-400" />
                               ) : (
@@ -565,9 +576,8 @@ const CommunityHub = ({ isOpen, onClose, user }) => {
                               <p className="text-white/40 text-xs">{tx.time}</p>
                             </div>
                           </div>
-                          <p className={`font-semibold ${
-                            tx.type === 'received' ? 'text-emerald-400' : 'text-red-400'
-                          }`}>
+                          <p className={`font-semibold ${tx.type === 'received' ? 'text-emerald-400' : 'text-red-400'
+                            }`}>
                             {tx.type === 'received' ? '+' : '-'}₹{tx.amount.toLocaleString('en-IN')}
                           </p>
                         </div>
@@ -635,11 +645,10 @@ const CommunityHub = ({ isOpen, onClose, user }) => {
                               <p className="text-white font-semibold">₹{loan.amount.toLocaleString('en-IN')}</p>
                               <p className="text-white/50 text-sm">By {loan.lender}</p>
                             </div>
-                            <span className={`px-2 py-1 rounded-full text-xs ${
-                              loan.status === 'available' 
-                                ? 'bg-emerald-500/20 text-emerald-400' 
+                            <span className={`px-2 py-1 rounded-full text-xs ${loan.status === 'available'
+                                ? 'bg-emerald-500/20 text-emerald-400'
                                 : 'bg-amber-500/20 text-amber-400'
-                            }`}>
+                              }`}>
                               {loan.status}
                             </span>
                           </div>
@@ -698,9 +707,8 @@ const CommunityHub = ({ isOpen, onClose, user }) => {
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
                           onClick={toggleMute}
-                          className={`p-4 rounded-full ${
-                            isMuted ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-white'
-                          }`}
+                          className={`p-4 rounded-full ${isMuted ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-white'
+                            }`}
                         >
                           {isMuted ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
                         </motion.button>
@@ -735,9 +743,8 @@ const CommunityHub = ({ isOpen, onClose, user }) => {
                               <div>
                                 <p className="text-white text-sm">{u.name}</p>
                                 <p className="text-white/40 text-xs flex items-center gap-1">
-                                  <Circle className={`w-2 h-2 ${
-                                    u.status === 'online' ? 'fill-emerald-400' : 'fill-amber-400'
-                                  }`} />
+                                  <Circle className={`w-2 h-2 ${u.status === 'online' ? 'fill-emerald-400' : 'fill-amber-400'
+                                    }`} />
                                   {u.status}
                                 </p>
                               </div>
@@ -773,9 +780,8 @@ const CommunityHub = ({ isOpen, onClose, user }) => {
                       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold">
                         {u.name.charAt(0)}
                       </div>
-                      <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-slate-900 ${
-                        u.status === 'online' ? 'bg-emerald-400' : 'bg-amber-400'
-                      }`} />
+                      <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-slate-900 ${u.status === 'online' ? 'bg-emerald-400' : 'bg-amber-400'
+                        }`} />
                     </div>
                     <span className="text-white/70 text-sm truncate">{u.name}</span>
                   </div>

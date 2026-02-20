@@ -100,13 +100,18 @@ const ChatHistory = mongoose.model('ChatHistory', chatHistorySchema);
 
 // Multer configuration for image uploads
 const storage = multer.memoryStorage();
-const upload = multer({ 
+const upload = multer({
   storage: storage,
   limits: { fileSize: 10 * 1024 * 1024 }
 });
 
 // Middleware
-app.use(cors());
+const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+app.use(cors({
+  origin: [CLIENT_URL, 'http://localhost:5173', 'http://localhost:3000'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true
+}));
 app.use(express.json({ limit: '10mb' }));
 
 // Rate limiting
@@ -150,7 +155,7 @@ app.use(authMiddleware);
 const logActivity = async (req, activityType, details = {}) => {
   try {
     if (mongoose.connection.readyState !== 1) return;
-    
+
     await Activity.create({
       userId: req.userId || null,
       sessionId: req.header('X-Session-ID') || 'anonymous',
@@ -273,7 +278,7 @@ app.post('/api/auth/google', async (req, res) => {
 
     // Find or create user
     let user = await User.findOne({ email });
-    
+
     if (user) {
       // Update existing user with Google info
       user.googleId = uid;
@@ -344,7 +349,7 @@ app.put('/api/auth/profile', async (req, res) => {
 
   try {
     const { name, phone, location, farmDetails, preferences } = req.body;
-    
+
     const updates = {};
     if (name) updates.name = name;
     if (phone) updates.phone = phone;
@@ -394,8 +399,8 @@ app.get('/api/activities', async (req, res) => {
 
 // ==================== HEALTH CHECK ====================
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     message: 'Agri-Voice API is running',
     database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
     timestamp: new Date().toISOString()
@@ -406,7 +411,7 @@ app.get('/api/health', (req, res) => {
 app.get('/api/crop-search', async (req, res) => {
   try {
     const { query } = req.query;
-    
+
     if (!query) {
       return res.status(400).json({ error: 'Search query is required' });
     }
@@ -501,10 +506,10 @@ app.get('/api/weather', async (req, res) => {
       appid: process.env.OPENWEATHER_API_KEY,
       units: 'metric'
     };
-    
+
     // Check if key is placeholder
     if (process.env.OPENWEATHER_API_KEY === 'your_openweather_api_key') {
-       return res.json({
+      return res.json({
         data: getMockWeatherData(),
         source: 'mock'
       });
@@ -560,7 +565,7 @@ app.get('/api/news', async (req, res) => {
 
     // Check if key is placeholder
     if (process.env.NEWS_API_KEY === 'your_news_api_key') {
-       return res.json({
+      return res.json({
         data: getMockNewsData(),
         source: 'mock'
       });
@@ -611,11 +616,11 @@ app.post('/api/gemini/chat', async (req, res) => {
     if (req.userId && mongoose.connection.readyState === 1) {
       try {
         let chatHistory = await ChatHistory.findOne({ userId: req.userId }).sort({ createdAt: -1 });
-        
+
         if (!chatHistory || Date.now() - chatHistory.createdAt > 24 * 60 * 60 * 1000) {
           chatHistory = new ChatHistory({ userId: req.userId, messages: [] });
         }
-        
+
         chatHistory.messages.push({ role: 'user', content: message });
         chatHistory.updatedAt = new Date();
         await chatHistory.save();
@@ -814,7 +819,7 @@ function getMockCropData(query) {
   ];
 
   if (query) {
-    return crops.filter(c => 
+    return crops.filter(c =>
       c.commonName.toLowerCase().includes(query.toLowerCase()) ||
       c.scientificName.toLowerCase().includes(query.toLowerCase())
     );
@@ -903,19 +908,19 @@ function getMockNewsData() {
 
 function getMockAIResponse(message) {
   const lowerMessage = message.toLowerCase();
-  
+
   if (lowerMessage.includes('wheat')) {
     return "🌾 **Wheat Cultivation Tips:**\n\n1. **Best Season:** Rabi (Oct-Nov sowing)\n2. **Soil:** Well-drained loamy soil, pH 6-7\n3. **Irrigation:** 4-6 irrigations needed\n4. **Varieties:** HD-2967, PBW-343 are popular\n\n💡 Apply first irrigation 21 days after sowing for best results!";
   }
-  
+
   if (lowerMessage.includes('disease') || lowerMessage.includes('pest')) {
     return "🔬 **Disease Management:**\n\n1. **Prevention:** Use certified seeds and crop rotation\n2. **Early Detection:** Check leaves regularly for spots or discoloration\n3. **Treatment:** Neem-based organic pesticides work well\n4. **Consult:** Visit your local Krishi Vigyan Kendra for specific diagnosis\n\n📸 You can also upload an image for AI-powered disease identification!";
   }
-  
+
   if (lowerMessage.includes('scheme') || lowerMessage.includes('subsidy')) {
     return "📋 **Key Government Schemes for Farmers:**\n\n1. **PM-KISAN:** ₹6,000/year direct benefit\n2. **PMFBY:** Crop insurance at low premium\n3. **Soil Health Card:** Free soil testing\n4. **Kisan Credit Card:** Easy agricultural loans\n\n🔗 Apply at your nearest CSC or bank!";
   }
-  
+
   return "🌱 **Namaste Kisan!**\n\nI'm your Agri-Voice AI assistant. I can help you with:\n\n• Crop cultivation advice\n• Disease identification (upload photos!)\n• Weather-based recommendations\n• Government scheme information\n• Organic farming tips\n\nHow can I assist you today?";
 }
 
@@ -925,8 +930,9 @@ const server = http.createServer(app);
 // Socket.io setup
 const io = new Server(server, {
   cors: {
-    origin: ['http://localhost:5173', 'http://localhost:3000'],
-    methods: ['GET', 'POST']
+    origin: [CLIENT_URL, 'http://localhost:5173', 'http://localhost:3000'],
+    methods: ['GET', 'POST'],
+    credentials: true
   }
 });
 

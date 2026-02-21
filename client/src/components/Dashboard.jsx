@@ -2,6 +2,8 @@ import { motion } from 'framer-motion';
 import { Sparkles, TrendingUp, Leaf, CloudSun } from 'lucide-react';
 import WeatherWidget from './WeatherWidget';
 import NewsWidget from './NewsWidget';
+import LabourNeeded from './LabourNeeded';
+import FarmingPractices from './FarmingPractices';
 
 const Dashboard = ({ onFeatureClick }) => {
   const currentHour = new Date().getHours();
@@ -60,7 +62,7 @@ const Dashboard = ({ onFeatureClick }) => {
               transition={{ delay: 0.3 }}
               className="text-3xl md:text-5xl font-bold font-['Outfit'] mb-4"
             >
-              <span className="text-white">{greeting}, </span>
+              <span className="text-main">{greeting}, </span>
               <span className="bg-gradient-to-r from-emerald-400 via-cyan-400 to-violet-400 bg-clip-text text-transparent">
                 Kisan!
               </span>
@@ -70,9 +72,9 @@ const Dashboard = ({ onFeatureClick }) => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="text-white/60 text-lg max-w-2xl mb-8"
+              className="text-muted text-lg max-w-2xl mb-8"
             >
-              Your personalized farming assistant is ready. Check weather alerts, 
+              Your personalized farming assistant is ready. Check weather alerts,
               explore government schemes, and get AI-powered advice for better yields.
             </motion.p>
 
@@ -113,21 +115,26 @@ const Dashboard = ({ onFeatureClick }) => {
       </motion.section>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Weather Widget */}
         <motion.div id="weather" variants={itemVariants} className="scroll-mt-24">
           <WeatherWidget />
         </motion.div>
 
+        {/* Farming Practices Section */}
+        <motion.div variants={itemVariants}>
+          <FarmingPractices />
+        </motion.div>
+
         {/* News/Schemes Widget */}
-        <motion.div id="schemes" variants={itemVariants} className="scroll-mt-24">
+        <motion.div id="schemes" variants={itemVariants} className="scroll-mt-24 md:col-span-2 lg:col-span-1">
           <NewsWidget />
         </motion.div>
       </div>
 
       {/* Feature Cards */}
       <motion.section variants={itemVariants}>
-        <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+        <h3 className="text-xl font-bold text-main mb-4 flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-amber-400" />
           Quick Actions
         </h3>
@@ -164,7 +171,20 @@ const Dashboard = ({ onFeatureClick }) => {
             borderGradient="from-indigo-500 to-purple-500"
             onClick={() => onFeatureClick?.('community-hub')}
           />
+          <FeatureCard
+            title="Expert Advice"
+            description="Get personalized farming advice from agriculture experts"
+            icon="🎓"
+            gradient="from-blue-500/20 to-cyan-500/20"
+            borderGradient="from-blue-500 to-cyan-500"
+            onClick={() => onFeatureClick?.('expert-advice')}
+          />
         </div>
+      </motion.section>
+
+      {/* Labour Needed Section */}
+      <motion.section variants={itemVariants}>
+        <LabourNeeded />
       </motion.section>
     </motion.div>
   );
@@ -185,7 +205,7 @@ const QuickStat = ({ icon, label, value, color }) => {
           {icon}
         </div>
         <div>
-          <p className="text-white/50 text-xs">{label}</p>
+          <p className="text-muted text-xs">{label}</p>
           <p className={`font-semibold ${colorClasses[color].split(' ')[0]}`}>
             {value}
           </p>
@@ -209,8 +229,8 @@ const FeatureCard = ({ title, description, icon, gradient, borderGradient, onCli
 
     <div className="relative z-10">
       <span className="text-4xl mb-4 block">{icon}</span>
-      <h4 className="text-white font-semibold text-lg mb-2">{title}</h4>
-      <p className="text-white/50 text-sm">{description}</p>
+      <h4 className="text-main font-semibold text-lg mb-2">{title}</h4>
+      <p className="text-muted text-sm">{description}</p>
     </div>
   </motion.div>
 );

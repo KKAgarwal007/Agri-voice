@@ -15,7 +15,7 @@ import { onAuthChange, signOutUser } from './utils/firebase';
 function App() {
   const [showCropSearch, setShowCropSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(() => !getCurrentUser());
   const [user, setUser] = useState(null);
 
   // Modal states
@@ -23,6 +23,7 @@ function App() {
   const [showVoiceAssistant, setShowVoiceAssistant] = useState(false);
   const [showMarketPrices, setShowMarketPrices] = useState(false);
   const [showCommunityHub, setShowCommunityHub] = useState(false);
+  const [theme, setTheme] = useState(localStorage.getItem('agri_theme') || 'dark');
 
   // Load persisted user on mount + subscribe to Firebase auth changes
   useEffect(() => {
@@ -58,6 +59,18 @@ function App() {
     return () => unsubscribe();
   }, []);
 
+  // Theme effect
+  useEffect(() => {
+    if (theme === 'light') {
+      document.body.classList.add('light');
+    } else {
+      document.body.classList.remove('light');
+    }
+    localStorage.setItem('agri_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+
   const handleSearch = (query) => {
     setSearchQuery(query);
     setShowCropSearch(true);
@@ -90,7 +103,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-dark relative overflow-hidden">
+    <div className={`min-h-screen relative overflow-hidden ${theme === 'light' ? 'bg-slate-50' : 'bg-gradient-dark'}`}>
       {/* Ambient Background Effects */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="ambient-orb w-[600px] h-[600px] -top-48 -left-48 bg-emerald-500/30" />
@@ -104,6 +117,8 @@ function App() {
         onAuthClick={() => setShowAuthModal(true)}
         user={user}
         onLogout={handleLogout}
+        theme={theme}
+        toggleTheme={toggleTheme}
       />
 
       {/* Main Content */}

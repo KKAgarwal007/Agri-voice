@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -37,6 +37,7 @@ const VoiceAssistant = ({ isOpen, onClose }) => {
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
   const inputRef = useRef(null);
+  const networkRetryRef = useRef(false);
 
   const languages = [
     { code: 'hi-IN', name: 'हिंदी', flag: '🇮🇳' },
@@ -64,33 +65,113 @@ const VoiceAssistant = ({ isOpen, onClose }) => {
     };
   }, []);
 
-  // Initialize speech recognition
-  useEffect(() => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = false;
-      recognitionRef.current.interimResults = true;
-      recognitionRef.current.lang = selectedLanguage;
-
-      recognitionRef.current.onresult = (event) => {
-        const transcript = Array.from(event.results)
-          .map((result) => result[0])
-          .map((result) => result.transcript)
-          .join('');
-        setInput(transcript);
-      };
-
-      recognitionRef.current.onend = () => {
-        setIsListening(false);
-      };
-
-      recognitionRef.current.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        setIsListening(false);
-      };
+  // Initialize and start speech recognition
+  const startRecognition = () => {
+    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+      alert('आपके browser में voice recognition supported नहीं है। Chrome या Edge use करें।');
+      return;
     }
-  }, [selectedLanguage]);
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = selectedLanguage;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      console.log('Speech recognition started');
+    };
+
+    recognition.onresult = (event) => {
+      let currentResult = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        currentResult += event.results[i][0].transcript;
+      }
+      if (currentResult) {
+        setInput(currentResult);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      setIsListening(false);
+      recognitionRef.current = null;
+
+      if (event.error === 'not-allowed') {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: '🎙️ **Microphone access denied.** Please enable microphone permissions in your browser settings and try again.',
+          },
+        ]);
+      } else if (event.error === 'network') {
+        // Auto-retry once after a short delay
+        if (!networkRetryRef.current) {
+          networkRetryRef.current = true;
+          setTimeout(() => {
+            startRecognition();
+          }, 1000);
+          return;
+        }
+        // Reset for next user-initiated attempt
+        networkRetryRef.current = false;
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: '🌐 **Network error:** Voice recognition service unreachable. Please type your question instead, or check your internet connection and try again.',
+          },
+        ]);
+      } else if (event.error === 'no-speech') {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: '🔇 Koi awaaz nahi suni. Kripya mic ke paas bolein aur dobara try karein.',
+          },
+        ]);
+      }
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      recognitionRef.current = null;
+    };
+
+    try {
+      recognition.start();
+      recognitionRef.current = recognition;
+    } catch (e) {
+      console.error('Error starting recognition:', e);
+      setIsListening(false);
+    }
+  };
+
+  const toggleListening = () => {
+    if (isListening) {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          console.error('Error stopping recognition:', e);
+        }
+      }
+      setIsListening(false);
+    } else {
+      startRecognition();
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
 
   // Update language on recognition
   useEffect(() => {
@@ -103,22 +184,6 @@ const VoiceAssistant = ({ isOpen, onClose }) => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  const toggleListening = () => {
-    if (!recognitionRef.current) {
-      alert('आपके browser में voice recognition supported नहीं है। Chrome या Edge use करें।');
-      return;
-    }
-
-    if (isListening) {
-      recognitionRef.current.stop();
-      setIsListening(false);
-    } else {
-      recognitionRef.current.lang = selectedLanguage;
-      recognitionRef.current.start();
-      setIsListening(true);
-    }
-  };
 
   const speakText = (text) => {
     if ('speechSynthesis' in window) {
@@ -243,11 +308,11 @@ const VoiceAssistant = ({ isOpen, onClose }) => {
                 <Mic className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <h2 className="text-lg font-bold text-main flex items-center gap-2">
                   Voice Assistant
                   <Sparkles className="w-4 h-4 text-amber-400" />
                 </h2>
-                <p className="text-white/50 text-xs">बोलकर पूछें या टाइप करें</p>
+                <p className="text-muted text-xs">बोलकर पूछें या टाइप करें</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -264,11 +329,11 @@ const VoiceAssistant = ({ isOpen, onClose }) => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setShowLanguages(!showLanguages)}
-                  className="p-2 hover:bg-white/10 rounded-lg transition-colors flex items-center gap-1"
+                  className="p-2 hover:bg-black/5 rounded-lg transition-colors flex items-center gap-1"
                   title="Change language"
                 >
-                  <Globe className="w-4 h-4 text-white/70" />
-                  <span className="text-xs text-white/70">
+                  <Globe className="w-4 h-4 text-muted" />
+                  <span className="text-xs text-muted">
                     {languages.find(l => l.code === selectedLanguage)?.flag}
                   </span>
                 </motion.button>
@@ -289,7 +354,7 @@ const VoiceAssistant = ({ isOpen, onClose }) => {
                             setSelectedLanguage(lang.code);
                             setShowLanguages(false);
                           }}
-                          className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-white/10 transition-colors ${selectedLanguage === lang.code ? 'bg-violet-500/20 text-violet-400' : 'text-white/70'
+                          className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-black/5 transition-colors ${selectedLanguage === lang.code ? 'bg-violet-500/20 text-violet-400' : 'text-main'
                             }`}
                         >
                           <span>{lang.flag}</span>
@@ -305,18 +370,18 @@ const VoiceAssistant = ({ isOpen, onClose }) => {
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={clearChat}
-                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                className="p-2 hover:bg-black/5 rounded-lg transition-colors"
                 title="Clear chat"
               >
-                <Trash2 className="w-4 h-4 text-white/50" />
+                <Trash2 className="w-4 h-4 text-muted" />
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.1, rotate: 90 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={onClose}
-                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                className="p-2 hover:bg-black/5 rounded-lg transition-colors"
               >
-                <X className="w-5 h-5 text-white/70" />
+                <X className="w-5 h-5 text-muted" />
               </motion.button>
             </div>
           </div>
@@ -332,8 +397,8 @@ const VoiceAssistant = ({ isOpen, onClose }) => {
               >
                 <div
                   className={`max-w-[85%] ${message.role === 'user'
-                      ? 'bg-gradient-to-br from-violet-500 to-purple-500 text-white'
-                      : 'glass text-white'
+                    ? 'bg-gradient-to-br from-violet-500 to-purple-500 text-white'
+                    : 'glass text-main'
                     } rounded-2xl p-4 ${message.role === 'user' ? 'rounded-br-md' : 'rounded-bl-md'
                     }`}
                 >
@@ -378,7 +443,7 @@ const VoiceAssistant = ({ isOpen, onClose }) => {
               >
                 <div className="glass rounded-2xl rounded-bl-md p-4 flex items-center gap-2">
                   <Loader2 className="w-4 h-4 text-violet-400 animate-spin" />
-                  <span className="text-white/60 text-sm">सोच रहा हूं...</span>
+                  <span className="text-muted text-sm">सोच रहा हूं...</span>
                 </div>
               </motion.div>
             )}
@@ -424,7 +489,7 @@ const VoiceAssistant = ({ isOpen, onClose }) => {
                   }}
                   placeholder={`${languages.find(l => l.code === selectedLanguage)?.name} में लिखें...`}
                   rows={1}
-                  className="w-full px-4 py-3 glass-input rounded-xl text-white text-sm resize-none max-h-24"
+                  className="w-full px-4 py-3 glass-input rounded-xl text-main text-sm resize-none max-h-24 placeholder:text-muted/40"
                   style={{ minHeight: '48px' }}
                 />
               </div>
@@ -437,10 +502,10 @@ const VoiceAssistant = ({ isOpen, onClose }) => {
                 onClick={toggleListening}
                 disabled={!isOnline}
                 className={`p-3 rounded-xl transition-all flex-shrink-0 ${isListening
-                    ? 'bg-red-500 recording-indicator'
-                    : isOnline
-                      ? 'bg-gradient-to-r from-violet-500 to-purple-500'
-                      : 'bg-gray-500/50 cursor-not-allowed'
+                  ? 'bg-red-500 recording-indicator'
+                  : isOnline
+                    ? 'bg-gradient-to-r from-violet-500 to-purple-500'
+                    : 'bg-gray-500/50 cursor-not-allowed'
                   }`}
                 title={isListening ? 'Stop listening' : 'Start voice input'}
               >
@@ -458,8 +523,8 @@ const VoiceAssistant = ({ isOpen, onClose }) => {
                 whileTap={{ scale: 0.95 }}
                 disabled={loading || !input.trim() || !isOnline}
                 className={`p-3 rounded-xl flex-shrink-0 transition-all ${input.trim() && isOnline
-                    ? 'bg-gradient-to-r from-violet-500 to-purple-500 shadow-lg'
-                    : 'bg-white/10'
+                  ? 'bg-gradient-to-r from-violet-500 to-purple-500 shadow-lg'
+                  : 'bg-white/10'
                   }`}
               >
                 <Send className={`w-5 h-5 ${input.trim() && isOnline ? 'text-white' : 'text-white/40'}`} />

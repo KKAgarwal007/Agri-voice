@@ -1,9 +1,20 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Leaf, Menu, X, User, LogOut, ChevronDown } from 'lucide-react';
+import {
+  Search,
+  Leaf,
+  Menu,
+  X,
+  User,
+  LogOut,
+  ChevronDown,
+  Sun,
+  Moon,
+  Globe
+} from 'lucide-react';
 import { getCurrentUser, logout, isAuthenticated } from '../utils/api';
 
-const Navigation = ({ onSearch, onAuthClick, user, onLogout }) => {
+const Navigation = ({ onSearch, onAuthClick, user, onLogout, theme, toggleTheme }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -50,7 +61,7 @@ const Navigation = ({ onSearch, onAuthClick, user, onLogout }) => {
               <h1 className="text-xl md:text-2xl font-bold font-['Outfit'] bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
                 Agri-Voice
               </h1>
-              <p className="text-[10px] md:text-xs text-white/50 hidden sm:block">
+              <p className="text-[10px] md:text-xs text-muted md:text-muted hidden sm:block">
                 Smart Farming Dashboard
               </p>
             </div>
@@ -61,22 +72,21 @@ const Navigation = ({ onSearch, onAuthClick, user, onLogout }) => {
             onSubmit={handleSubmit}
             className="hidden md:flex items-center flex-1 max-w-xl mx-8"
           >
-            <div className="relative w-full group">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Search className="w-5 h-5 text-white/40 group-focus-within:text-emerald-400 transition-colors" />
+            <div className="relative w-full flex items-center group">
+              <div className="absolute left-4 pointer-events-none flex items-center">
+                <Search className="w-5 h-5 text-muted group-focus-within:text-emerald-400 transition-colors" />
               </div>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search crops, growing guides, disease info..."
-                className="w-full pl-12 pr-4 py-3 glass-input rounded-xl text-white placeholder-white/40 text-sm focus:ring-2 focus:ring-emerald-500/30"
+                className="w-full pl-12 pr-28 py-3 glass-input rounded-xl text-main placeholder:text-muted/40 text-sm focus:ring-2 focus:ring-emerald-500/30"
               />
               <motion.button
                 type="submit"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-lg text-white text-sm font-medium shadow-lg"
+                whileTap={{ scale: 0.98 }}
+                className="absolute right-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-lg text-white text-sm font-medium shadow-lg hover:shadow-emerald-500/20 transition-all duration-300"
               >
                 Search
               </motion.button>
@@ -88,7 +98,39 @@ const Navigation = ({ onSearch, onAuthClick, user, onLogout }) => {
             <NavLink sectionId="dashboard">Dashboard</NavLink>
             <NavLink sectionId="weather">Weather</NavLink>
             <NavLink sectionId="schemes">Schemes</NavLink>
-            
+
+            {/* Translate Toggle */}
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => {
+                const widget = document.getElementById('google_translate_element');
+                if (widget) {
+                  widget.style.display = widget.style.display === 'none' ? 'block' : 'none';
+                  // Move the widget to be under the button if possible, or just let it appear top-left
+                }
+              }}
+              className="p-2 rounded-xl glass hover:bg-black/5 transition-colors group relative"
+              title="Translate Page"
+            >
+              <Globe className="w-5 h-5 text-emerald-400 group-hover:text-emerald-500 transition-colors" />
+            </motion.button>
+
+            {/* Theme Toggle */}
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={toggleTheme}
+              className="p-2 rounded-xl glass hover:bg-white/10 transition-colors"
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {theme === 'dark' ? (
+                <Sun className="w-5 h-5 text-amber-400" />
+              ) : (
+                <Moon className="w-5 h-5 text-indigo-600" />
+              )}
+            </motion.button>
+
             {/* User Button */}
             {user ? (
               <div className="relative">
@@ -100,10 +142,10 @@ const Navigation = ({ onSearch, onAuthClick, user, onLogout }) => {
                   <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center">
                     <User className="w-4 h-4 text-white" />
                   </div>
-                  <span className="text-white text-sm font-medium max-w-24 truncate">
+                  <span className="text-sm font-medium max-w-24 truncate text-main">
                     {user.name?.split(' ')[0]}
                   </span>
-                  <ChevronDown className={`w-4 h-4 text-white/60 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`w-4 h-4 text-muted transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
                 </motion.button>
 
                 {/* User Dropdown */}
@@ -114,12 +156,12 @@ const Navigation = ({ onSearch, onAuthClick, user, onLogout }) => {
                     className="absolute right-0 top-full mt-2 w-48 glass-heavy rounded-xl overflow-hidden border border-white/10"
                   >
                     <div className="p-3 border-b border-white/10">
-                      <p className="text-white font-medium text-sm">{user.name}</p>
-                      <p className="text-white/50 text-xs truncate">{user.email}</p>
+                      <p className="font-medium text-sm text-main">{user.name}</p>
+                      <p className="text-muted text-xs truncate">{user.email}</p>
                     </div>
                     <button
                       onClick={handleLogout}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-red-400 hover:bg-red-500/10 transition-colors text-sm"
+                      className="w-full flex items-center gap-2 px-3 py-2 text-red-500 hover:bg-red-500/10 transition-colors text-sm"
                     >
                       <LogOut className="w-4 h-4" />
                       Sign Out
@@ -141,16 +183,28 @@ const Navigation = ({ onSearch, onAuthClick, user, onLogout }) => {
           </div>
 
           {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden btn-icon"
-          >
-            {isMobileMenuOpen ? (
-              <X className="w-5 h-5 text-white" />
-            ) : (
-              <Menu className="w-5 h-5 text-white" />
-            )}
-          </button>
+          <div className="flex items-center gap-2 md:hidden">
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg glass"
+            >
+              {theme === 'dark' ? (
+                <Sun className="w-5 h-5 text-amber-400" />
+              ) : (
+                <Moon className="w-5 h-5 text-indigo-600" />
+              )}
+            </button>
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="btn-icon"
+            >
+              {isMobileMenuOpen ? (
+                <X className="w-5 h-5" />
+              ) : (
+                <Menu className="w-5 h-5" />
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Menu */}
@@ -183,7 +237,7 @@ const Navigation = ({ onSearch, onAuthClick, user, onLogout }) => {
               <MobileNavLink sectionId="schemes" onClick={() => setIsMobileMenuOpen(false)}>
                 Schemes
               </MobileNavLink>
-              
+
               {user ? (
                 <>
                   <div className="mt-2 pt-2 border-t border-white/10">
@@ -229,7 +283,7 @@ const NavLink = ({ children, sectionId }) => {
     <motion.button
       onClick={handleClick}
       whileHover={{ y: -2 }}
-      className="text-white/70 hover:text-white text-sm font-medium transition-colors relative group"
+      className="text-muted hover:text-main text-sm font-medium transition-colors relative group"
     >
       {children}
       <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-emerald-400 to-cyan-400 group-hover:w-full transition-all duration-300" />
@@ -252,7 +306,7 @@ const MobileNavLink = ({ children, onClick, sectionId }) => {
   return (
     <button
       onClick={handleClick}
-      className="block w-full text-left py-2 px-4 text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+      className="block w-full text-left py-2 px-4 text-muted hover:text-main hover:bg-white/5 rounded-lg transition-colors"
     >
       {children}
     </button>

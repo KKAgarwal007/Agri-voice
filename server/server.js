@@ -98,6 +98,110 @@ const chatHistorySchema = new mongoose.Schema({
 
 const ChatHistory = mongoose.model('ChatHistory', chatHistorySchema);
 
+// Community Post Schema
+const communityPostSchema = new mongoose.Schema({
+  authorId: { type: String },
+  authorName: { type: String, required: true },
+  authorAvatar: { type: String },
+  content: { type: String, default: '' },
+  image: { type: String },
+  votes: { type: Number, default: 0 },
+  voterMap: { type: Map, of: Number, default: {} },
+  comments: { type: Number, default: 0 },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const CommunityPost = mongoose.model('CommunityPost', communityPostSchema);
+
+// Community Message Schema
+const communityMessageSchema = new mongoose.Schema({
+  authorName: { type: String, required: true },
+  content: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const CommunityMessage = mongoose.model('CommunityMessage', communityMessageSchema);
+
+// Transaction Schema
+const transactionSchema = new mongoose.Schema({
+  senderName: { type: String, required: true },
+  senderId: { type: String },
+  recipientName: { type: String, required: true },
+  recipientId: { type: String },
+  amount: { type: Number, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Transaction = mongoose.model('Transaction', transactionSchema);
+
+// Loan Schema
+const loanSchema = new mongoose.Schema({
+  lender: { type: String, required: true },
+  lenderId: { type: String },
+  borrower: { type: String },
+  borrowerId: { type: String },
+  amount: { type: Number, required: true },
+  interest: { type: Number, default: 5 },
+  duration: { type: Number, default: 30 },
+  status: { type: String, default: 'available', enum: ['available', 'pending', 'taken', 'repaid'] },
+  collateral: { type: String, default: 'Crop Bond' },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Loan = mongoose.model('Loan', loanSchema);
+
+// Call Log Schema
+const callLogSchema = new mongoose.Schema({
+  callerName: { type: String, required: true },
+  callerId: { type: String },
+  receiverName: { type: String, required: true },
+  receiverId: { type: String },
+  callType: { type: String, enum: ['audio', 'video'], default: 'audio' },
+  duration: { type: Number, default: 0 },
+  status: { type: String, enum: ['completed', 'missed', 'rejected'], default: 'completed' },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const CallLog = mongoose.model('CallLog', callLogSchema);
+
+// Scheduled Call Schema
+const scheduledCallSchema = new mongoose.Schema({
+  schedulerName: { type: String, required: true },
+  schedulerId: { type: String },
+  targetName: { type: String, required: true },
+  targetId: { type: String },
+  callType: { type: String, enum: ['audio', 'video'], default: 'audio' },
+  scheduledTime: { type: Date, required: true },
+  note: { type: String },
+  status: { type: String, enum: ['scheduled', 'completed', 'cancelled'], default: 'scheduled' },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const ScheduledCall = mongoose.model('ScheduledCall', scheduledCallSchema);
+
+// Labour Post Schema
+const labourPostSchema = new mongoose.Schema({
+  farmerName: { type: String, required: true },
+  farmerId: { type: String },
+  workType: { type: String, required: true },
+  location: { type: String, required: true },
+  duration: { type: String, required: true },
+  offeredWage: { type: Number, required: true },
+  labourCount: { type: Number, default: 1 },
+  notes: { type: String },
+  analysis: {
+    fairnessScore: Number,
+    suggestedWageRange: String,
+    improvements: [String],
+    expectedResponseRate: String,
+    optimizedDescription: String
+  },
+  status: { type: String, enum: ['active', 'closed', 'filled'], default: 'active' },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const LabourPost = mongoose.model('LabourPost', labourPostSchema);
+
 // Multer configuration for image uploads
 const storage = multer.memoryStorage();
 const upload = multer({
@@ -605,6 +709,540 @@ app.get('/api/news', async (req, res) => {
   }
 });
 
+// ==================== COMMUNITY API ====================
+
+// Get community posts
+app.get('/api/community/posts', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.json({ data: [], source: 'offline' });
+    }
+    const posts = await CommunityPost.find().sort({ createdAt: -1 }).limit(50).lean();
+    const formatted = posts.map(p => ({
+      id: p._id,
+      user: { name: p.authorName, avatar: p.authorAvatar },
+      content: p.content,
+      image: p.image || null,
+      votes: p.votes,
+      userVote: 0,
+      comments: p.comments,
+      time: timeAgo(p.createdAt)
+    }));
+    res.json({ data: formatted });
+  } catch (error) {
+    console.error('Get posts error:', error.message);
+    res.json({ data: [] });
+  }
+});
+
+// Create a community post
+app.post('/api/community/posts', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'Database not connected' });
+    }
+    const { authorName, authorAvatar, content, image } = req.body;
+    if (!content && !image) {
+      return res.status(400).json({ error: 'Content or image is required' });
+    }
+    const post = await CommunityPost.create({
+      authorId: req.userId || null,
+      authorName: authorName || 'Guest',
+      authorAvatar: authorAvatar || null,
+      content: content || '',
+      image: image || null
+    });
+    const formatted = {
+      id: post._id,
+      user: { name: post.authorName, avatar: post.authorAvatar },
+      content: post.content,
+      image: post.image,
+      votes: 0,
+      userVote: 0,
+      comments: 0,
+      time: 'Just now'
+    };
+    res.status(201).json({ data: formatted });
+  } catch (error) {
+    console.error('Create post error:', error.message);
+    res.status(500).json({ error: 'Failed to create post' });
+  }
+});
+
+// Vote on a post
+app.post('/api/community/posts/:id/vote', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'Database not connected' });
+    }
+    const { id } = req.params;
+    const { vote, odlerIdentifier } = req.body; // vote: 1 (up), -1 (down), 0 (remove)
+    const voterId = odlerIdentifier || req.userId || req.ip;
+
+    const post = await CommunityPost.findById(id);
+    if (!post) return res.status(404).json({ error: 'Post not found' });
+
+    const previousVote = post.voterMap.get(voterId) || 0;
+    const delta = vote - previousVote;
+    post.votes += delta;
+    if (vote === 0) {
+      post.voterMap.delete(voterId);
+    } else {
+      post.voterMap.set(voterId, vote);
+    }
+    await post.save();
+    res.json({ votes: post.votes, userVote: vote });
+  } catch (error) {
+    console.error('Vote error:', error.message);
+    res.status(500).json({ error: 'Vote failed' });
+  }
+});
+
+// Get community messages
+app.get('/api/community/messages', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.json({ data: [] });
+    }
+    const messages = await CommunityMessage.find().sort({ createdAt: -1 }).limit(100).lean();
+    const formatted = messages.reverse().map(m => ({
+      id: m._id,
+      user: m.authorName,
+      content: m.content,
+      time: new Date(m.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+    }));
+    res.json({ data: formatted });
+  } catch (error) {
+    console.error('Get messages error:', error.message);
+    res.json({ data: [] });
+  }
+});
+
+// Get transactions for a user
+app.get('/api/community/transactions/:userId', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.json({ data: [], balance: 10000 });
+    }
+    const { userId } = req.params;
+    const txs = await Transaction.find({
+      $or: [{ senderId: userId }, { recipientId: userId }]
+    }).sort({ createdAt: -1 }).limit(50).lean();
+
+    const formatted = txs.map(tx => ({
+      id: tx._id,
+      type: tx.senderId === userId ? 'sent' : 'received',
+      from: tx.senderName,
+      to: tx.recipientName,
+      amount: tx.amount,
+      time: timeAgo(tx.createdAt)
+    }));
+
+    // Calculate balance: start with 10000, subtract sent, add received
+    let balance = 10000;
+    const allTxs = await Transaction.find({
+      $or: [{ senderId: userId }, { recipientId: userId }]
+    }).lean();
+    for (const tx of allTxs) {
+      if (tx.senderId === userId) balance -= tx.amount;
+      if (tx.recipientId === userId) balance += tx.amount;
+    }
+
+    res.json({ data: formatted, balance });
+  } catch (error) {
+    console.error('Get transactions error:', error.message);
+    res.json({ data: [], balance: 10000 });
+  }
+});
+
+// Create a transaction
+app.post('/api/community/transactions', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'Database not connected' });
+    }
+    const { senderName, senderId, recipientName, recipientId, amount } = req.body;
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: 'Valid amount is required' });
+    }
+    const tx = await Transaction.create({
+      senderName, senderId, recipientName, recipientId, amount
+    });
+    res.status(201).json({
+      data: {
+        id: tx._id,
+        type: 'sent',
+        to: recipientName,
+        amount: tx.amount,
+        time: 'Just now'
+      }
+    });
+  } catch (error) {
+    console.error('Create transaction error:', error.message);
+    res.status(500).json({ error: 'Failed to save transaction' });
+  }
+});
+
+// Get all available loans
+app.get('/api/community/loans', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.json({ data: [] });
+    }
+    const loans = await Loan.find().sort({ createdAt: -1 }).limit(50).lean();
+    const formatted = loans.map(l => ({
+      id: l._id,
+      lender: l.lender,
+      lenderId: l.lenderId,
+      borrower: l.borrower,
+      amount: l.amount,
+      interest: l.interest,
+      duration: l.duration,
+      status: l.status,
+      collateral: l.collateral,
+      time: timeAgo(l.createdAt)
+    }));
+    res.json({ data: formatted });
+  } catch (error) {
+    console.error('Get loans error:', error.message);
+    res.json({ data: [] });
+  }
+});
+
+// Create a loan request
+app.post('/api/community/loans', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'Database not connected' });
+    }
+    const { lender, lenderId, amount, interest, duration, collateral } = req.body;
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: 'Valid amount is required' });
+    }
+    const loan = await Loan.create({
+      lender: lender || 'Anonymous',
+      lenderId,
+      amount,
+      interest: interest || 5,
+      duration: duration || 30,
+      collateral: collateral || 'Crop Bond'
+    });
+    res.status(201).json({
+      data: {
+        id: loan._id,
+        lender: loan.lender,
+        lenderId: loan.lenderId,
+        amount: loan.amount,
+        interest: loan.interest,
+        duration: loan.duration,
+        status: loan.status,
+        collateral: loan.collateral,
+        time: 'Just now'
+      }
+    });
+  } catch (error) {
+    console.error('Create loan error:', error.message);
+    res.status(500).json({ error: 'Failed to create loan' });
+  }
+});
+
+// Apply for a loan
+app.post('/api/community/loans/:id/apply', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'Database not connected' });
+    }
+    const { id } = req.params;
+    const { borrower, borrowerId } = req.body;
+    const loan = await Loan.findById(id);
+    if (!loan) return res.status(404).json({ error: 'Loan not found' });
+    if (loan.status !== 'available') return res.status(400).json({ error: 'Loan is no longer available' });
+
+    loan.status = 'taken';
+    loan.borrower = borrower || 'Guest';
+    loan.borrowerId = borrowerId || null;
+    await loan.save();
+    res.json({ success: true, status: loan.status });
+  } catch (error) {
+    console.error('Apply loan error:', error.message);
+    res.status(500).json({ error: 'Failed to apply for loan' });
+  }
+});
+
+// ==================== CALL API ====================
+
+// Get call logs for a user
+app.get('/api/community/calls/:userId', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.json({ data: [] });
+    const { userId } = req.params;
+    const logs = await CallLog.find({
+      $or: [{ callerId: userId }, { receiverId: userId }]
+    }).sort({ createdAt: -1 }).limit(30).lean();
+    const formatted = logs.map(l => ({
+      id: l._id,
+      callerName: l.callerName,
+      receiverName: l.receiverName,
+      callType: l.callType,
+      duration: l.duration,
+      status: l.status,
+      time: timeAgo(l.createdAt)
+    }));
+    res.json({ data: formatted });
+  } catch (error) {
+    console.error('Get call logs error:', error.message);
+    res.json({ data: [] });
+  }
+});
+
+// Save a call log
+app.post('/api/community/calls', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ error: 'DB offline' });
+    const log = await CallLog.create(req.body);
+    res.status(201).json({ data: { id: log._id } });
+  } catch (error) {
+    console.error('Save call log error:', error.message);
+    res.status(500).json({ error: 'Failed to save' });
+  }
+});
+
+// Get scheduled calls for a user
+app.get('/api/community/scheduled-calls/:userId', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.json({ data: [] });
+    const { userId } = req.params;
+    const calls = await ScheduledCall.find({
+      $or: [{ schedulerId: userId }, { targetId: userId }],
+      status: 'scheduled',
+      scheduledTime: { $gte: new Date() }
+    }).sort({ scheduledTime: 1 }).lean();
+    const formatted = calls.map(c => ({
+      id: c._id,
+      schedulerName: c.schedulerName,
+      targetName: c.targetName,
+      targetId: c.targetId,
+      callType: c.callType,
+      scheduledTime: c.scheduledTime,
+      note: c.note,
+      status: c.status
+    }));
+    res.json({ data: formatted });
+  } catch (error) {
+    console.error('Get scheduled calls error:', error.message);
+    res.json({ data: [] });
+  }
+});
+
+// Create a scheduled call
+app.post('/api/community/scheduled-calls', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ error: 'DB offline' });
+    const call = await ScheduledCall.create(req.body);
+    res.status(201).json({
+      data: {
+        id: call._id,
+        schedulerName: call.schedulerName,
+        targetName: call.targetName,
+        targetId: call.targetId,
+        callType: call.callType,
+        scheduledTime: call.scheduledTime,
+        note: call.note,
+        status: call.status
+      }
+    });
+  } catch (error) {
+    console.error('Create scheduled call error:', error.message);
+    res.status(500).json({ error: 'Failed to schedule' });
+  }
+});
+
+// Cancel a scheduled call
+app.delete('/api/community/scheduled-calls/:id', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ error: 'DB offline' });
+    await ScheduledCall.findByIdAndUpdate(req.params.id, { status: 'cancelled' });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Cancel scheduled call error:', error.message);
+    res.status(500).json({ error: 'Failed to cancel' });
+  }
+});
+
+// ==================== LABOUR API ====================
+
+// Analyze and create a labour post
+app.post('/api/labour/analyze', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'Database not connected' });
+    }
+    const { farmerName, farmerId, workType, location, duration, offeredWage, labourCount, notes } = req.body;
+    if (!workType || !location || !offeredWage) {
+      return res.status(400).json({ error: 'Work type, location, and wage are required' });
+    }
+
+    let analysis = null;
+
+    // Try Gemini AI analysis
+    if (genAI) {
+      try {
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+        const prompt = `You are an agricultural labour market expert in India. Analyze this farmer's job post and respond ONLY in valid JSON (no markdown, no code fences).
+
+Job Details:
+- Work Type: ${workType}
+- Location: ${location}
+- Duration: ${duration}
+- Offered Wage: ₹${offeredWage}/day
+- Number of Labour Required: ${labourCount}
+- Additional Notes: ${notes || 'None'}
+
+Respond with this exact JSON structure:
+{
+  "fairnessScore": <number 1-10>,
+  "suggestedWageRange": "₹<min> - ₹<max>/day",
+  "improvements": ["improvement1", "improvement2"],
+  "expectedResponseRate": "<Low/Medium/High> - <explanation>",
+  "optimizedDescription": "<optimized job listing text in 2-3 sentences>"
+}`;
+
+        const result = await model.generateContent(prompt);
+        const text = result.response.text().trim();
+        // Clean any markdown fencing
+        const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        analysis = JSON.parse(clean);
+      } catch (aiErr) {
+        console.error('Gemini labour analysis error:', aiErr.message);
+      }
+    }
+
+    // Fallback analysis if Gemini fails
+    if (!analysis) {
+      const wage = parseInt(offeredWage);
+      let score = 5;
+      if (wage >= 300 && wage <= 600) score = 7;
+      if (wage >= 400 && wage <= 500) score = 9;
+      if (wage < 200) score = 3;
+      if (wage > 800) score = 6;
+      analysis = {
+        fairnessScore: score,
+        suggestedWageRange: '₹300 - ₹500/day',
+        improvements: [
+          'Specify exact working hours',
+          'Mention if meals are provided',
+          'Add nearby landmark for location clarity'
+        ],
+        expectedResponseRate: wage >= 350 ? 'High - competitive wage for this region' : 'Low - consider increasing the wage',
+        optimizedDescription: `Urgent: ${labourCount} skilled ${workType} workers needed in ${location} for ${duration}. Wage: ₹${offeredWage}/day. ${notes || 'Contact for details.'}`
+      };
+    }
+
+    // Save to MongoDB
+    const post = await LabourPost.create({
+      farmerName: farmerName || 'Guest',
+      farmerId,
+      workType,
+      location,
+      duration,
+      offeredWage: parseInt(offeredWage),
+      labourCount: parseInt(labourCount) || 1,
+      notes,
+      analysis
+    });
+
+    res.status(201).json({
+      data: {
+        id: post._id,
+        workType: post.workType,
+        location: post.location,
+        duration: post.duration,
+        offeredWage: post.offeredWage,
+        labourCount: post.labourCount,
+        analysis: post.analysis,
+        time: 'Just now'
+      }
+    });
+  } catch (error) {
+    console.error('Labour analysis error:', error.message);
+    res.status(500).json({ error: 'Failed to analyze job post' });
+  }
+});
+
+// Get labour posts
+app.get('/api/labour/posts', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.json({ data: [] });
+    const posts = await LabourPost.find({ status: 'active' }).sort({ createdAt: -1 }).limit(20).lean();
+    const formatted = posts.map(p => ({
+      id: p._id,
+      farmerName: p.farmerName,
+      workType: p.workType,
+      location: p.location,
+      duration: p.duration,
+      offeredWage: p.offeredWage,
+      labourCount: p.labourCount,
+      analysis: p.analysis,
+      time: timeAgo(p.createdAt)
+    }));
+    res.json({ data: formatted });
+  } catch (error) {
+    console.error('Get labour posts error:', error.message);
+    res.json({ data: [] });
+  }
+});
+
+// Apply for a labour job
+app.post('/api/labour/posts/:id/apply', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ error: 'DB offline' });
+
+    const post = await LabourPost.findById(req.params.id);
+    if (!post) return res.status(404).json({ error: 'Job post not found' });
+
+    if (post.labourCount <= 0) {
+      return res.status(400).json({ error: 'Job is already filled' });
+    }
+
+    post.labourCount -= 1;
+    if (post.labourCount === 0) {
+      post.status = 'filled';
+    }
+    await post.save();
+
+    // Notify farmer via Socket.io
+    const applicantName = req.body.applicantName || 'A worker';
+    io.emit('labour-applied', {
+      postId: post._id,
+      farmerId: post.farmerId,
+      farmerName: post.farmerName,
+      workType: post.workType,
+      applicantName,
+      remainingCount: post.labourCount,
+      timestamp: new Date()
+    });
+
+    res.json({
+      success: true,
+      remainingCount: post.labourCount,
+      status: post.status
+    });
+  } catch (error) {
+    console.error('Apply for job error:', error.message);
+    res.status(500).json({ error: 'Failed to apply for job' });
+  }
+});
+
+// Helper: human-readable time ago
+function timeAgo(date) {
+  const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+  if (seconds < 60) return 'Just now';
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
+  if (seconds < 604800) return `${Math.floor(seconds / 86400)} days ago`;
+  return new Date(date).toLocaleDateString('en-IN');
+}
+
 // ==================== GEMINI AI API ====================
 app.post('/api/gemini/chat', async (req, res) => {
   try {
@@ -638,8 +1276,6 @@ app.post('/api/gemini/chat', async (req, res) => {
       return res.json({ response, source: 'mock' });
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-
     const systemPrompt = `You are Agri-Voice AI, a helpful agricultural assistant for Indian farmers. 
 You provide advice on:
 - Crop cultivation and best practices
@@ -653,28 +1289,56 @@ You provide advice on:
 Keep responses concise, practical, and farmer-friendly. Use simple language.
 If asked about crop diseases from images, provide detailed diagnosis and treatment options.`;
 
-    const chat = model.startChat({
-      history: history || [],
-      generationConfig: { maxOutputTokens: 1000 },
-    });
+    // Try models in order with retry
+    const modelsToTry = ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash'];
+    let lastError = null;
 
-    const result = await chat.sendMessage(`${systemPrompt}\n\nUser: ${message}`);
-    const response = result.response.text();
+    for (const modelName of modelsToTry) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          if (attempt > 0) {
+            // Wait before retry (exponential backoff)
+            await new Promise(resolve => setTimeout(resolve, (attempt + 1) * 2000));
+          }
 
-    // Save assistant response
-    if (req.userId && mongoose.connection.readyState === 1) {
-      try {
-        const chatHistory = await ChatHistory.findOne({ userId: req.userId }).sort({ updatedAt: -1 });
-        if (chatHistory) {
-          chatHistory.messages.push({ role: 'assistant', content: response });
-          await chatHistory.save();
+          const model = genAI.getGenerativeModel({ model: modelName });
+          const chat = model.startChat({
+            history: history || [],
+            generationConfig: { maxOutputTokens: 1000 },
+          });
+
+          const result = await chat.sendMessage(`${systemPrompt}\n\nUser: ${message}`);
+          const response = result.response.text();
+
+          // Save assistant response
+          if (req.userId && mongoose.connection.readyState === 1) {
+            try {
+              const chatHistory = await ChatHistory.findOne({ userId: req.userId }).sort({ updatedAt: -1 });
+              if (chatHistory) {
+                chatHistory.messages.push({ role: 'assistant', content: response });
+                await chatHistory.save();
+              }
+            } catch (err) {
+              console.error('Chat history save error:', err.message);
+            }
+          }
+
+          return res.json({ response, source: 'gemini' });
+        } catch (err) {
+          lastError = err;
+          console.error(`Gemini ${modelName} attempt ${attempt + 1} error:`, err.message?.substring(0, 120));
+          // Only retry on rate limit (429) errors
+          if (!err.message?.includes('429') && !err.message?.includes('quota')) break;
         }
-      } catch (err) {
-        console.error('Chat history save error:', err.message);
       }
     }
 
-    res.json({ response, source: 'gemini' });
+    // All models and retries exhausted — fallback to mock
+    console.error('All Gemini models failed, using mock. Last error:', lastError?.message?.substring(0, 100));
+    res.json({
+      response: getMockAIResponse(req.body.message || "hello"),
+      source: 'mock'
+    });
   } catch (error) {
     console.error('Gemini API error:', error.message);
     // Fallback to mock on error
@@ -704,7 +1368,7 @@ app.post('/api/gemini/analyze-image', upload.single('image'), async (req, res) =
       });
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     const imagePart = {
       inlineData: {
@@ -956,14 +1620,29 @@ io.on('connection', (socket) => {
     console.log(`👤 ${userData.userName} joined the community`);
   });
 
-  // Handle messages
-  socket.on('send-message', (message) => {
+  // Handle messages — broadcast + persist
+  socket.on('send-message', async (message) => {
     socket.broadcast.emit('new-message', message);
+    try {
+      if (mongoose.connection.readyState === 1) {
+        await CommunityMessage.create({
+          authorName: message.user || 'Guest',
+          content: message.content
+        });
+      }
+    } catch (err) {
+      console.error('Message persist error:', err.message);
+    }
   });
 
-  // Handle posts
+  // Handle posts — broadcast (post is already saved via REST API)
   socket.on('new-post', (post) => {
     socket.broadcast.emit('new-post', post);
+  });
+
+  // Handle post voting
+  socket.on('vote-post', (voteData) => {
+    socket.broadcast.emit('vote-updated', voteData);
   });
 
   // Handle payments

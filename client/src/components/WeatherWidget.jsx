@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Cloud, 
-  Sun, 
-  CloudRain, 
-  CloudSnow, 
-  Wind, 
-  Droplets, 
+import {
+  Cloud,
+  Sun,
+  CloudRain,
+  CloudSnow,
+  Wind,
+  Droplets,
   Thermometer,
   MapPin,
   AlertTriangle,
@@ -62,7 +62,7 @@ const WeatherWidget = () => {
 
   const getWeatherIcon = (iconCode) => {
     if (!iconCode) return <Sun className="w-12 h-12 text-amber-400" />;
-    
+
     const iconMap = {
       '01d': <Sun className="w-12 h-12 text-amber-400" />,
       '01n': <Sun className="w-12 h-12 text-amber-300" />,
@@ -114,7 +114,7 @@ const WeatherWidget = () => {
       <div className="glass rounded-2xl p-6 h-full min-h-[300px] flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-10 h-10 text-emerald-400 animate-spin mx-auto mb-4" />
-          <p className="text-white/60">Loading weather...</p>
+          <p className="text-muted">Loading weather...</p>
         </div>
       </div>
     );
@@ -146,7 +146,7 @@ const WeatherWidget = () => {
           <div className="p-2 rounded-lg bg-cyan-500/20">
             <Cloud className="w-5 h-5 text-cyan-400" />
           </div>
-          <h3 className="text-lg font-semibold text-white">Weather & Soil Alerts</h3>
+          <h3 className="text-lg font-semibold text-main">Weather & Soil Alerts</h3>
         </div>
         <motion.button
           whileHover={{ rotate: 180 }}
@@ -167,17 +167,17 @@ const WeatherWidget = () => {
           {getWeatherIcon(weather?.icon)}
         </motion.div>
         <div className="flex-1">
-          <div className="flex items-center gap-2 text-white/60 text-sm mb-1">
+          <div className="flex items-center gap-2 text-muted text-sm mb-1">
             <MapPin className="w-4 h-4" />
             <span>{weather?.location}, {weather?.country}</span>
           </div>
           <div className="flex items-end gap-2">
-            <span className="text-5xl font-bold text-white">
+            <span className="text-5xl font-bold text-main">
               {weather?.temperature}°
             </span>
-            <span className="text-white/50 text-lg pb-2">C</span>
+            <span className="text-muted text-lg pb-2">C</span>
           </div>
-          <p className="text-white/60 capitalize">{weather?.description}</p>
+          <p className="text-muted capitalize">{weather?.description}</p>
         </div>
       </div>
 
@@ -198,11 +198,11 @@ const WeatherWidget = () => {
           <p className="text-white font-semibold">{weather?.humidity}%</p>
         </div>
         <div className="text-center">
-          <div className="flex items-center justify-center gap-1 text-white/50 text-xs mb-1">
+          <div className="flex items-center justify-center gap-1 text-muted text-xs mb-1">
             <Wind className="w-3 h-3" />
             Wind
           </div>
-          <p className="text-white font-semibold">{weather?.windSpeed} m/s</p>
+          <p className="text-main font-semibold">{weather?.windSpeed} m/s</p>
         </div>
       </div>
 
@@ -221,8 +221,8 @@ const WeatherWidget = () => {
               <div className="flex items-start gap-3">
                 {getAlertIcon(alert.type)}
                 <div>
-                  <p className="text-white text-sm font-medium">{alert.title}</p>
-                  <p className="text-white/60 text-xs mt-1">{alert.message}</p>
+                  <p className="text-main text-sm font-medium">{alert.title}</p>
+                  <p className="text-muted text-xs mt-1">{alert.message}</p>
                 </div>
               </div>
             </motion.div>

@@ -48,53 +48,87 @@ const VoiceAIChat = () => {
     facingMode: 'environment' // Use back camera on mobile
   };
 
-  // Initialize speech recognition
-  useEffect(() => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = false;
-      recognitionRef.current.interimResults = true;
-      recognitionRef.current.lang = 'en-IN';
-
-      recognitionRef.current.onresult = (event) => {
-        const transcript = Array.from(event.results)
-          .map((result) => result[0])
-          .map((result) => result.transcript)
-          .join('');
-        setInput(transcript);
-      };
-
-      recognitionRef.current.onend = () => {
-        setIsListening(false);
-      };
-
-      recognitionRef.current.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        setIsListening(false);
-      };
+  // Initialize and start speech recognition
+  const startRecognition = () => {
+    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+      alert('Speech recognition is not supported in your browser. Please use Chrome or Edge.');
+      return;
     }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'en-IN';
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      console.log('Speech recognition started');
+    };
+
+    recognition.onresult = (event) => {
+      let currentResult = '';
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        currentResult += event.results[i][0].transcript;
+      }
+      if (currentResult) {
+        setInput(currentResult);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      setIsListening(false);
+
+      if (event.error === 'not-allowed') {
+        alert('Microphone access denied. Please enable microphone permissions in your browser settings.');
+      } else if (event.error === 'network') {
+        alert('Network error: Web Speech API fails if Google speech services are unreachable. Please check your internet connection or try a different network.');
+      }
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      recognitionRef.current = null;
+    };
+
+    try {
+      recognition.start();
+      recognitionRef.current = recognition;
+    } catch (e) {
+      console.error('Error starting recognition:', e);
+      setIsListening(false);
+    }
+  };
+
+  const toggleListening = () => {
+    if (isListening) {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          console.error('Error stopping recognition:', e);
+        }
+      }
+      setIsListening(false);
+    } else {
+      startRecognition();
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
   }, []);
 
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  const toggleListening = () => {
-    if (!recognitionRef.current) {
-      alert('Speech recognition is not supported in your browser. Please use Chrome or Edge.');
-      return;
-    }
-
-    if (isListening) {
-      recognitionRef.current.stop();
-      setIsListening(false);
-    } else {
-      recognitionRef.current.start();
-      setIsListening(true);
-    }
-  };
 
   const speakText = (text) => {
     if ('speechSynthesis' in window) {
@@ -258,11 +292,11 @@ const VoiceAIChat = () => {
                   <Bot className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-white font-semibold flex items-center gap-2">
+                  <h3 className="text-main font-semibold flex items-center gap-2">
                     Agri-Voice AI
                     <Sparkles className="w-4 h-4 text-amber-400" />
                   </h3>
-                  <p className="text-white/50 text-xs">Ask me anything about farming</p>
+                  <p className="text-muted text-xs">Ask me anything about farming</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -270,18 +304,18 @@ const VoiceAIChat = () => {
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={clearChat}
-                  className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                  className="p-2 hover:bg-black/5 rounded-lg transition-colors"
                   title="Clear chat"
                 >
-                  <Trash2 className="w-4 h-4 text-white/50" />
+                  <Trash2 className="w-4 h-4 text-muted" />
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.1, rotate: 90 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={() => setIsOpen(false)}
-                  className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                  className="p-2 hover:bg-black/5 rounded-lg transition-colors"
                 >
-                  <X className="w-5 h-5 text-white/70" />
+                  <X className="w-5 h-5 text-muted" />
                 </motion.button>
               </div>
             </div>
@@ -297,8 +331,8 @@ const VoiceAIChat = () => {
                 >
                   <div
                     className={`max-w-[85%] ${message.role === 'user'
-                        ? 'bg-gradient-to-br from-emerald-500 to-cyan-500 text-white'
-                        : 'glass text-white'
+                      ? 'bg-gradient-to-br from-emerald-500 to-cyan-500 text-white'
+                      : 'glass text-main'
                       } rounded-2xl p-4 ${message.role === 'user' ? 'rounded-br-md' : 'rounded-bl-md'
                       }`}
                   >
@@ -353,7 +387,7 @@ const VoiceAIChat = () => {
                 >
                   <div className="glass rounded-2xl rounded-bl-md p-4 flex items-center gap-2">
                     <Loader2 className="w-4 h-4 text-emerald-400 animate-spin" />
-                    <span className="text-white/60 text-sm">Thinking...</span>
+                    <span className="text-muted text-sm">Thinking...</span>
                   </div>
                 </motion.div>
               )}
@@ -467,7 +501,7 @@ const VoiceAIChat = () => {
                     placeholder={showCamera ? "Capturing..." : "Ask questions..."}
                     rows={1}
                     disabled={showCamera}
-                    className="w-full px-4 py-3 glass-input rounded-xl text-white text-sm resize-none max-h-24 disabled:opacity-50"
+                    className="w-full px-4 py-3 glass-input rounded-xl text-main text-sm resize-none max-h-24 disabled:opacity-50 placeholder:text-muted/40"
                     style={{ minHeight: '48px' }}
                   />
                 </div>
@@ -479,8 +513,8 @@ const VoiceAIChat = () => {
                   whileTap={{ scale: 0.9 }}
                   onClick={toggleListening}
                   className={`p-3 rounded-xl transition-colors flex-shrink-0 ${isListening
-                      ? 'bg-red-500 recording-indicator'
-                      : 'hover:bg-white/10'
+                    ? 'bg-red-500 recording-indicator'
+                    : 'hover:bg-white/10'
                     }`}
                   title={isListening ? 'Stop listening' : 'Start voice input'}
                 >
@@ -498,8 +532,8 @@ const VoiceAIChat = () => {
                   whileTap={{ scale: 0.95 }}
                   disabled={loading || (!input.trim() && !selectedImage)}
                   className={`p-3 rounded-xl flex-shrink-0 transition-all ${input.trim() || selectedImage
-                      ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 shadow-lg'
-                      : 'bg-white/10'
+                    ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 shadow-lg'
+                    : 'bg-white/10'
                     }`}
                 >
                   <Send className={`w-5 h-5 ${input.trim() || selectedImage ? 'text-white' : 'text-white/40'}`} />

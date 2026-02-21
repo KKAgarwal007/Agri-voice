@@ -1,16 +1,18 @@
 import { motion } from 'framer-motion';
+import { useLanguage } from '../utils/LanguageContext';
 import { Sparkles, TrendingUp, Leaf, CloudSun } from 'lucide-react';
 import WeatherWidget from './WeatherWidget';
 import NewsWidget from './NewsWidget';
 
 const Dashboard = ({ onFeatureClick }) => {
+  const { t, currentLanguage } = useLanguage();
   const currentHour = new Date().getHours();
-  let greeting = 'Good Morning';
-  if (currentHour >= 12 && currentHour < 17) {
-    greeting = 'Good Afternoon';
-  } else if (currentHour >= 17) {
-    greeting = 'Good Evening';
-  }
+
+  const getGreeting = () => {
+    if (currentHour < 12) return t('welcome');
+    if (currentHour < 17) return t('welcome'); // Simplify for translations or add more keys
+    return t('welcome');
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -60,9 +62,9 @@ const Dashboard = ({ onFeatureClick }) => {
               transition={{ delay: 0.3 }}
               className="text-3xl md:text-5xl font-bold font-['Outfit'] mb-4"
             >
-              <span className="text-white">{greeting}, </span>
+              <span className="text-white">{t('welcome')}, </span>
               <span className="bg-gradient-to-r from-emerald-400 via-cyan-400 to-violet-400 bg-clip-text text-transparent">
-                Kisan!
+                {t('farmer')}!
               </span>
             </motion.h2>
 
@@ -72,8 +74,7 @@ const Dashboard = ({ onFeatureClick }) => {
               transition={{ delay: 0.4 }}
               className="text-white/60 text-lg max-w-2xl mb-8"
             >
-              Your personalized farming assistant is ready. Check weather alerts, 
-              explore government schemes, and get AI-powered advice for better yields.
+              Explore government schemes, check weather alerts, and get AI-powered advice for better yields.
             </motion.p>
 
             {/* Quick Stats */}
@@ -85,7 +86,7 @@ const Dashboard = ({ onFeatureClick }) => {
             >
               <QuickStat
                 icon={<CloudSun className="w-5 h-5" />}
-                label="Weather"
+                label={t('weather')}
                 value="Clear"
                 color="cyan"
               />
@@ -129,36 +130,36 @@ const Dashboard = ({ onFeatureClick }) => {
       <motion.section variants={itemVariants}>
         <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-amber-400" />
-          Quick Actions
+          {t('quick_actions')}
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <FeatureCard
-            title="Crop Disease Scanner"
-            description="Upload a photo of your crop to identify diseases instantly"
+            title={t('disease_scanner')}
+            description={t('scan_crop')}
             icon="🔬"
             gradient="from-rose-500/20 to-orange-500/20"
             borderGradient="from-rose-500 to-orange-500"
             onClick={() => onFeatureClick?.('disease-scanner')}
           />
           <FeatureCard
-            title="Voice Assistant"
-            description="Ask farming questions in your language using voice"
+            title={t('voice_assistant')}
+            description={t('ask_ai')}
             icon="🎙️"
             gradient="from-violet-500/20 to-purple-500/20"
             borderGradient="from-violet-500 to-purple-500"
             onClick={() => onFeatureClick?.('voice-assistant')}
           />
           <FeatureCard
-            title="Market Prices"
-            description="Check real-time mandi prices for your crops"
+            title={t('market_prices')}
+            description={t('check_prices')}
             icon="📊"
             gradient="from-emerald-500/20 to-teal-500/20"
             borderGradient="from-emerald-500 to-teal-500"
             onClick={() => onFeatureClick?.('market-prices')}
           />
           <FeatureCard
-            title="Community Hub"
-            description="Connect, chat, pay, and call fellow farmers"
+            title={t('community_hub')}
+            description={t('join_community')}
             icon="👥"
             gradient="from-indigo-500/20 to-purple-500/20"
             borderGradient="from-indigo-500 to-purple-500"

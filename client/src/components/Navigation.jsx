@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Search, Leaf, Menu, X, User, LogOut, ChevronDown } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from '../utils/LanguageContext';
+import { Search, Leaf, Menu, X, User, LogOut, ChevronDown, Globe } from 'lucide-react';
 import { getCurrentUser, logout, isAuthenticated } from '../utils/api';
 
 const Navigation = ({ onSearch, onAuthClick, user, onLogout }) => {
+  const { currentLanguage, setCurrentLanguage, t, languages } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showLangMenu, setShowLangMenu] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -51,7 +54,7 @@ const Navigation = ({ onSearch, onAuthClick, user, onLogout }) => {
                 Agri-Voice
               </h1>
               <p className="text-[10px] md:text-xs text-white/50 hidden sm:block">
-                Smart Farming Dashboard
+                {t('smart_farming')}
               </p>
             </div>
           </motion.div>
@@ -59,7 +62,7 @@ const Navigation = ({ onSearch, onAuthClick, user, onLogout }) => {
           {/* Search Bar - Desktop */}
           <form
             onSubmit={handleSubmit}
-            className="hidden md:flex items-center flex-1 max-w-xl mx-8"
+            className="hidden lg:flex items-center flex-1 max-w-xl mx-8"
           >
             <div className="relative w-full group">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -69,7 +72,7 @@ const Navigation = ({ onSearch, onAuthClick, user, onLogout }) => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search crops, growing guides, disease info..."
+                placeholder={t('search_placeholder')}
                 className="w-full pl-12 pr-4 py-3 glass-input rounded-xl text-white placeholder-white/40 text-sm focus:ring-2 focus:ring-emerald-500/30"
               />
               <motion.button
@@ -78,22 +81,68 @@ const Navigation = ({ onSearch, onAuthClick, user, onLogout }) => {
                 whileTap={{ scale: 0.95 }}
                 className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-lg text-white text-sm font-medium shadow-lg"
               >
-                Search
+                {t('search_btn')}
               </motion.button>
             </div>
           </form>
 
           {/* Right Section */}
-          <div className="hidden md:flex items-center gap-4">
-            <NavLink sectionId="dashboard">Dashboard</NavLink>
-            <NavLink sectionId="weather">Weather</NavLink>
-            <NavLink sectionId="schemes">Schemes</NavLink>
-            
+          <div className="hidden md:flex items-center gap-3 lg:gap-4">
+            <NavLink sectionId="dashboard">{t('dashboard')}</NavLink>
+            <NavLink sectionId="weather">{t('weather')}</NavLink>
+            <NavLink sectionId="schemes">{t('schemes')}</NavLink>
+
+            {/* Language Selection Section */}
+            <div className="flex items-center gap-3">
+              {/* Google Translate Container */}
+              <div id="google_translate_element" className="google-translate-container"></div>
+
+              {/* Custom Language Selector */}
+              <div className="relative">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowLangMenu(!showLangMenu)}
+                  className="flex items-center gap-2 px-3 py-2 glass rounded-xl hover:bg-white/10 transition-colors text-white"
+                >
+                  <Globe className="w-4 h-4 text-emerald-400" />
+                  <span className="text-xs font-medium uppercase">{currentLanguage}</span>
+                  <ChevronDown className={`w-3 h-3 text-white/60 transition-transform ${showLangMenu ? 'rotate-180' : ''}`} />
+                </motion.button>
+
+                <AnimatePresence>
+                  {showLangMenu && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="absolute right-0 top-full mt-2 w-32 glass-heavy rounded-xl overflow-hidden border border-white/10 z-[60]"
+                    >
+                      {languages.map((lang) => (
+                        <button
+                          key={lang.code}
+                          onClick={() => {
+                            setCurrentLanguage(lang.code);
+                            setShowLangMenu(false);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-sm transition-colors hover:bg-white/10 ${currentLanguage === lang.code ? 'text-emerald-400 font-bold' : 'text-white/70'
+                            }`}
+                        >
+                          {lang.name}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+
             {/* User Button */}
             {user ? (
               <div className="relative">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="flex items-center gap-2 px-3 py-2 glass rounded-xl hover:bg-white/10 transition-colors"
                 >
@@ -106,26 +155,28 @@ const Navigation = ({ onSearch, onAuthClick, user, onLogout }) => {
                   <ChevronDown className={`w-4 h-4 text-white/60 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
                 </motion.button>
 
-                {/* User Dropdown */}
-                {showUserMenu && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="absolute right-0 top-full mt-2 w-48 glass-heavy rounded-xl overflow-hidden border border-white/10"
-                  >
-                    <div className="p-3 border-b border-white/10">
-                      <p className="text-white font-medium text-sm">{user.name}</p>
-                      <p className="text-white/50 text-xs truncate">{user.email}</p>
-                    </div>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-red-400 hover:bg-red-500/10 transition-colors text-sm"
+                <AnimatePresence>
+                  {showUserMenu && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="absolute right-0 top-full mt-2 w-48 glass-heavy rounded-xl overflow-hidden border border-white/10 z-[60]"
                     >
-                      <LogOut className="w-4 h-4" />
-                      Sign Out
-                    </button>
-                  </motion.div>
-                )}
+                      <div className="p-3 border-b border-white/10">
+                        <p className="text-white font-medium text-sm">{user.name}</p>
+                        <p className="text-white/50 text-xs truncate">{user.email}</p>
+                      </div>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-red-400 hover:bg-red-500/10 transition-colors text-sm"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        {t('sign_out')}
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             ) : (
               <motion.button
@@ -135,7 +186,7 @@ const Navigation = ({ onSearch, onAuthClick, user, onLogout }) => {
                 className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-xl text-white text-sm font-medium shadow-lg"
               >
                 <User className="w-4 h-4" />
-                Sign In
+                {t('sign_in')}
               </motion.button>
             )}
           </div>
@@ -168,34 +219,55 @@ const Navigation = ({ onSearch, onAuthClick, user, onLogout }) => {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search crops..."
+                  placeholder={t('search_btn') + '...'}
                   className="w-full pl-10 pr-4 py-3 glass-input rounded-xl text-white text-sm"
                 />
               </div>
             </form>
             <div className="flex flex-col gap-2">
               <MobileNavLink sectionId="dashboard" onClick={() => setIsMobileMenuOpen(false)}>
-                Dashboard
+                {t('dashboard')}
               </MobileNavLink>
               <MobileNavLink sectionId="weather" onClick={() => setIsMobileMenuOpen(false)}>
-                Weather
+                {t('weather')}
               </MobileNavLink>
               <MobileNavLink sectionId="schemes" onClick={() => setIsMobileMenuOpen(false)}>
-                Schemes
+                {t('schemes')}
               </MobileNavLink>
-              
+
+              <div className="mt-4 p-4 glass rounded-xl">
+                <p className="text-white/50 text-xs uppercase mb-3 px-1 font-semibold tracking-wider">Select Language</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {languages.map((lang) => (
+                    <button
+                      key={lang.code}
+                      onClick={() => {
+                        setCurrentLanguage(lang.code);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentLanguage === lang.code
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-white/5 text-white/70 hover:bg-white/10'
+                        }`}
+                    >
+                      {lang.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {user ? (
                 <>
                   <div className="mt-2 pt-2 border-t border-white/10">
                     <div className="px-4 py-2 text-white/60 text-sm">
-                      Signed in as <span className="text-white font-medium">{user.name}</span>
+                      {t('welcome')}, <span className="text-white font-medium">{user.name}</span>
                     </div>
                     <button
                       onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }}
                       className="w-full flex items-center gap-2 px-4 py-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors text-sm"
                     >
                       <LogOut className="w-4 h-4" />
-                      Sign Out
+                      {t('sign_out')}
                     </button>
                   </div>
                 </>
@@ -205,7 +277,7 @@ const Navigation = ({ onSearch, onAuthClick, user, onLogout }) => {
                   className="mt-2 flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-xl text-white text-sm font-medium"
                 >
                   <User className="w-4 h-4" />
-                  Sign In / Register
+                  {t('sign_in')}
                 </button>
               )}
             </div>

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from '../utils/LanguageContext';
 import Webcam from 'react-webcam';
 import {
   MessageCircle,
@@ -20,11 +21,12 @@ import {
 import { sendChatMessage, analyzeImage } from '../utils/api';
 
 const VoiceAIChat = () => {
+  const { t, currentLanguage } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: "🌱 **Namaste!** I'm your Agri-Voice AI assistant.\n\nI can help you with:\n• Crop cultivation advice\n• Disease identification (upload photos!)\n• Weather-based recommendations\n• Government scheme information\n\nHow can I assist you today?",
+      content: t('ask_ai'),
     },
   ]);
   const [input, setInput] = useState('');
@@ -48,14 +50,23 @@ const VoiceAIChat = () => {
     facingMode: 'environment' // Use back camera on mobile
   };
 
-  // Initialize speech recognition
+  // Initialize or re-initialize speech recognition when language changes
   useEffect(() => {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = false;
       recognitionRef.current.interimResults = true;
-      recognitionRef.current.lang = 'en-IN';
+
+      // Dynamic language selection for STT
+      const langMap = {
+        en: 'en-IN',
+        hi: 'hi-IN',
+        mr: 'mr-IN',
+        ta: 'ta-IN',
+        kn: 'kn-IN'
+      };
+      recognitionRef.current.lang = langMap[currentLanguage] || 'en-IN';
 
       recognitionRef.current.onresult = (event) => {
         const transcript = Array.from(event.results)
@@ -74,7 +85,7 @@ const VoiceAIChat = () => {
         setIsListening(false);
       };
     }
-  }, []);
+  }, [currentLanguage]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -110,7 +121,15 @@ const VoiceAIChat = () => {
         .replace(/\n/g, ' ');
 
       const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.lang = 'en-IN';
+
+      const langMap = {
+        en: 'en-IN',
+        hi: 'hi-IN',
+        mr: 'mr-IN', // Some browsers might fallback to hi-IN for mr if not available
+        ta: 'ta-IN',
+        kn: 'kn-IN'
+      };
+      utterance.lang = langMap[currentLanguage] || 'en-IN';
       utterance.rate = 0.9;
 
       utterance.onstart = () => setIsSpeaking(true);
@@ -297,8 +316,8 @@ const VoiceAIChat = () => {
                 >
                   <div
                     className={`max-w-[85%] ${message.role === 'user'
-                        ? 'bg-gradient-to-br from-emerald-500 to-cyan-500 text-white'
-                        : 'glass text-white'
+                      ? 'bg-gradient-to-br from-emerald-500 to-cyan-500 text-white'
+                      : 'glass text-white'
                       } rounded-2xl p-4 ${message.role === 'user' ? 'rounded-br-md' : 'rounded-bl-md'
                       }`}
                   >
@@ -479,8 +498,8 @@ const VoiceAIChat = () => {
                   whileTap={{ scale: 0.9 }}
                   onClick={toggleListening}
                   className={`p-3 rounded-xl transition-colors flex-shrink-0 ${isListening
-                      ? 'bg-red-500 recording-indicator'
-                      : 'hover:bg-white/10'
+                    ? 'bg-red-500 recording-indicator'
+                    : 'hover:bg-white/10'
                     }`}
                   title={isListening ? 'Stop listening' : 'Start voice input'}
                 >
@@ -498,8 +517,8 @@ const VoiceAIChat = () => {
                   whileTap={{ scale: 0.95 }}
                   disabled={loading || (!input.trim() && !selectedImage)}
                   className={`p-3 rounded-xl flex-shrink-0 transition-all ${input.trim() || selectedImage
-                      ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 shadow-lg'
-                      : 'bg-white/10'
+                    ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 shadow-lg'
+                    : 'bg-white/10'
                     }`}
                 >
                   <Send className={`w-5 h-5 ${input.trim() || selectedImage ? 'text-white' : 'text-white/40'}`} />

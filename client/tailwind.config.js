@@ -7,6 +7,11 @@ export default {
   theme: {
     extend: {
       colors: {
+        'main': 'var(--text-main)',
+        'muted': 'var(--text-muted)',
+        'dim': 'var(--text-dim)',
+        'glass-bg': 'var(--glass-bg)',
+        'glass-border': 'var(--glass-border)',
         'glass': {
           light: 'rgba(255, 255, 255, 0.1)',
           medium: 'rgba(255, 255, 255, 0.15)',

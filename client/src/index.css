@@ -8,13 +8,36 @@
 ======================================== */
 
 :root {
+  /* Dark Theme (Default) */
   --color-primary: #10b981;
   --color-secondary: #06b6d4;
   --color-accent: #8b5cf6;
-  --color-dark: #0f172a;
-  --color-darker: #020617;
+  --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 25%, #0f172a 50%, #1e1b4b 75%, #0f172a 100%);
+  --bg-app: #0f172a;
+  --text-main: #ffffff;
+  --text-muted: rgba(255, 255, 255, 0.6);
+  --text-dim: rgba(255, 255, 255, 0.4);
   --glass-bg: rgba(255, 255, 255, 0.08);
+  --glass-bg-heavy: rgba(255, 255, 255, 0.12);
   --glass-border: rgba(255, 255, 255, 0.15);
+  --glass-input-bg: rgba(255, 255, 255, 0.06);
+  --glass-input-border: rgba(255, 255, 255, 0.12);
+  --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.light {
+  /* Light Theme - More distinctive contrast */
+  --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #f8fafc 100%);
+  --bg-app: #f8fafc;
+  --text-main: #1e293b;
+  --text-muted: #475569;
+  --text-dim: #64748b;
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-bg-heavy: rgba(255, 255, 255, 0.95);
+  --glass-border: rgba(30, 41, 59, 0.15);
+  --glass-input-bg: rgba(30, 41, 59, 0.05);
+  --glass-input-border: rgba(30, 41, 59, 0.1);
+  --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
 }
 
 * {
@@ -29,58 +52,74 @@ html {
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 25%, #0f172a 50%, #1e1b4b 75%, #0f172a 100%);
+  background: var(--bg-gradient);
   background-size: 400% 400%;
   animation: gradient 15s ease infinite;
   min-height: 100vh;
-  color: white;
+  color: var(--text-main);
   overflow-x: hidden;
+  transition: background 0.5s ease, color 0.3s ease;
+}
+
+/* Base text classes for theme awareness */
+.text-main {
+  color: var(--text-main);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.text-dim {
+  color: var(--text-dim);
 }
 
 /* ========================================
    GLASSMORPHISM UTILITIES
-======================================== */
+ ======================================== */
 
 @layer components {
   .glass {
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--glass-bg);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 
-      0 8px 32px rgba(0, 0, 0, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  }
-
-  .glass-light {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .glass-heavy {
-    background: rgba(255, 255, 255, 0.12);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 
-      0 12px 48px rgba(0, 0, 0, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  }
-
-  .glass-input {
-    background: rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--card-shadow);
     transition: all 0.3s ease;
   }
 
+  .glass-light {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    opacity: 0.9;
+  }
+
+  .glass-heavy {
+    background: var(--glass-bg-heavy);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--card-shadow);
+  }
+
+  .glass-input {
+    background: var(--glass-input-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-input-border);
+    transition: all 0.2s ease-in-out;
+    height: 52px;
+    /* Fixed height to prevent vertical jitter */
+    display: flex;
+    align-items: center;
+  }
+
   .glass-input:focus {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(16, 185, 129, 0.5);
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+    background: var(--glass-bg);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
     outline: none;
   }
 
@@ -167,7 +206,7 @@ body {
 
   .card-hover:hover {
     transform: translateY(-4px);
-    box-shadow: 
+    box-shadow:
       0 20px 60px rgba(0, 0, 0, 0.4),
       0 0 40px rgba(16, 185, 129, 0.1);
   }
@@ -231,13 +270,27 @@ body {
 ======================================== */
 
 @keyframes gradient {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-15px) rotate(2deg); }
+
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-15px) rotate(2deg);
+  }
 }
 
 @keyframes pulse-ring {
@@ -245,6 +298,7 @@ body {
     transform: scale(1);
     opacity: 0.8;
   }
+
   100% {
     transform: scale(1.5);
     opacity: 0;
@@ -252,13 +306,26 @@ body {
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 @keyframes typing {
-  0%, 60%, 100% { opacity: 0.3; }
-  30% { opacity: 1; }
+
+  0%,
+  60%,
+  100% {
+    opacity: 0.3;
+  }
+
+  30% {
+    opacity: 1;
+  }
 }
 
 .animate-float {
@@ -270,12 +337,10 @@ body {
 }
 
 .animate-shimmer {
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.1) 50%,
-    rgba(255, 255, 255, 0) 100%
-  );
+  background: linear-gradient(90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.1) 50%,
+      rgba(255, 255, 255, 0) 100%);
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
 }
@@ -301,7 +366,7 @@ body {
   .glass {
     backdrop-filter: blur(15px);
   }
-  
+
   .card {
     padding: 1rem;
   }
@@ -367,7 +432,9 @@ body {
    FORM ELEMENTS
 ======================================== */
 
-input, textarea, select {
+input,
+textarea,
+select {
   font-family: inherit;
 }
 
@@ -442,24 +509,23 @@ textarea::placeholder {
   background: rgba(239, 68, 68, 0.3);
   animation: pulse-ring 1s infinite;
 }
-/* ========================================
-   GOOGLE TRANSLATE CUSTOM STYLES
-======================================== */
 
-.google-translate-container {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 4px 8px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  height: 40px;
+/* Google Translate Custom Styles */
+#google_translate_element {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  z-index: 9999;
+  padding: 10px;
+  border-radius: 16px;
+  background: var(--glass-bg-heavy);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--card-shadow);
+  transition: all 0.3s ease;
 }
 
-/* Hide the Google Translate branding and header */
-.goog-te-banner-frame.skiptranslate, 
-.goog-te-gadget-icon {
+.goog-te-banner-frame {
   display: none !important;
 }
 
@@ -467,42 +533,58 @@ body {
   top: 0 !important;
 }
 
-.goog-te-gadget-simple {
-  background-color: transparent !important;
-  border: none !important;
-  padding: 0 !important;
-  font-size: 14px !important;
-  display: flex !important;
-  align-items: center !important;
-}
-
-.goog-te-gadget-simple span {
-  color: white !important;
-  font-weight: 500 !important;
-}
-
-.goog-te-menu-value {
-  margin: 0 !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 4px !important;
-}
-
-.goog-te-menu-value span:nth-child(3) {
-  display: none !important; /* Hide the separator */
-}
-
-.goog-te-menu-value span:nth-child(5) {
-  display: none !important; /* Hide the arrow image */
-}
-
-.goog-te-gadget-simple img {
+.goog-tooltip {
   display: none !important;
 }
 
-/* Style the dropdown menu */
+.goog-tooltip:hover {
+  display: none !important;
+}
+
+.goog-text-highlight {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.goog-te-gadget {
+  font-family: 'Inter', sans-serif !important;
+  color: var(--text-main) !important;
+}
+
+.goog-te-gadget-simple {
+  background-color: transparent !important;
+  border: none !important;
+  padding: 8px !important;
+  border-radius: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.goog-te-menu-value {
+  color: var(--text-main) !important;
+  font-size: 14px !important;
+}
+
+.goog-te-menu-value span {
+  color: var(--text-main) !important;
+}
+
 .goog-te-menu-frame {
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+  box-shadow: var(--card-shadow) !important;
   border-radius: 12px !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Hide Google logo in gadget */
+.goog-te-gadget img {
+  display: none !important;
+}
+
+.goog-te-gadget-simple .goog-te-menu-value span:nth-child(3) {
+  display: none !important;
+}
+
+.goog-te-gadget-simple .goog-te-menu-value span:nth-child(5) {
+  display: none !important;
 }

@@ -1,15 +1,23 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useLanguage } from '../utils/LanguageContext';
-import { Search, Leaf, Menu, X, User, LogOut, ChevronDown, Globe } from 'lucide-react';
+import { motion } from 'framer-motion';
+import {
+  Search,
+  Leaf,
+  Menu,
+  X,
+  User,
+  LogOut,
+  ChevronDown,
+  Sun,
+  Moon,
+  Globe
+} from 'lucide-react';
 import { getCurrentUser, logout, isAuthenticated } from '../utils/api';
 
-const Navigation = ({ onSearch, onAuthClick, user, onLogout }) => {
-  const { currentLanguage, setCurrentLanguage, t, languages } = useLanguage();
+const Navigation = ({ onSearch, onAuthClick, user, onLogout, theme, toggleTheme }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showLangMenu, setShowLangMenu] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -53,8 +61,8 @@ const Navigation = ({ onSearch, onAuthClick, user, onLogout }) => {
               <h1 className="text-xl md:text-2xl font-bold font-['Outfit'] bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
                 Agri-Voice
               </h1>
-              <p className="text-[10px] md:text-xs text-white/50 hidden sm:block">
-                {t('smart_farming')}
+              <p className="text-[10px] md:text-xs text-muted md:text-muted hidden sm:block">
+                Smart Farming Dashboard
               </p>
             </div>
           </motion.div>
@@ -62,121 +70,104 @@ const Navigation = ({ onSearch, onAuthClick, user, onLogout }) => {
           {/* Search Bar - Desktop */}
           <form
             onSubmit={handleSubmit}
-            className="hidden lg:flex items-center flex-1 max-w-xl mx-8"
+            className="hidden md:flex items-center flex-1 max-w-xl mx-8"
           >
-            <div className="relative w-full group">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Search className="w-5 h-5 text-white/40 group-focus-within:text-emerald-400 transition-colors" />
+            <div className="relative w-full flex items-center group">
+              <div className="absolute left-4 pointer-events-none flex items-center">
+                <Search className="w-5 h-5 text-muted group-focus-within:text-emerald-400 transition-colors" />
               </div>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t('search_placeholder')}
-                className="w-full pl-12 pr-4 py-3 glass-input rounded-xl text-white placeholder-white/40 text-sm focus:ring-2 focus:ring-emerald-500/30"
+                placeholder="Search crops, growing guides, disease info..."
+                className="w-full pl-12 pr-28 py-3 glass-input rounded-xl text-main placeholder:text-muted/40 text-sm focus:ring-2 focus:ring-emerald-500/30"
               />
               <motion.button
                 type="submit"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-lg text-white text-sm font-medium shadow-lg"
+                whileTap={{ scale: 0.98 }}
+                className="absolute right-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-lg text-white text-sm font-medium shadow-lg hover:shadow-emerald-500/20 transition-all duration-300"
               >
-                {t('search_btn')}
+                Search
               </motion.button>
             </div>
           </form>
 
           {/* Right Section */}
-          <div className="hidden md:flex items-center gap-3 lg:gap-4">
-            <NavLink sectionId="dashboard">{t('dashboard')}</NavLink>
-            <NavLink sectionId="weather">{t('weather')}</NavLink>
-            <NavLink sectionId="schemes">{t('schemes')}</NavLink>
+          <div className="hidden md:flex items-center gap-4">
+            <NavLink sectionId="dashboard">Dashboard</NavLink>
+            <NavLink sectionId="weather">Weather</NavLink>
+            <NavLink sectionId="schemes">Schemes</NavLink>
 
-            {/* Language Selection Section */}
-            <div className="flex items-center gap-3">
-              {/* Google Translate Container */}
-              <div id="google_translate_element" className="google-translate-container"></div>
+            {/* Translate Toggle */}
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => {
+                const widget = document.getElementById('google_translate_element');
+                if (widget) {
+                  widget.style.display = widget.style.display === 'none' ? 'block' : 'none';
+                  // Move the widget to be under the button if possible, or just let it appear top-left
+                }
+              }}
+              className="p-2 rounded-xl glass hover:bg-black/5 transition-colors group relative"
+              title="Translate Page"
+            >
+              <Globe className="w-5 h-5 text-emerald-400 group-hover:text-emerald-500 transition-colors" />
+            </motion.button>
 
-              {/* Custom Language Selector */}
-              <div className="relative">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowLangMenu(!showLangMenu)}
-                  className="flex items-center gap-2 px-3 py-2 glass rounded-xl hover:bg-white/10 transition-colors text-white"
-                >
-                  <Globe className="w-4 h-4 text-emerald-400" />
-                  <span className="text-xs font-medium uppercase">{currentLanguage}</span>
-                  <ChevronDown className={`w-3 h-3 text-white/60 transition-transform ${showLangMenu ? 'rotate-180' : ''}`} />
-                </motion.button>
-
-                <AnimatePresence>
-                  {showLangMenu && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="absolute right-0 top-full mt-2 w-32 glass-heavy rounded-xl overflow-hidden border border-white/10 z-[60]"
-                    >
-                      {languages.map((lang) => (
-                        <button
-                          key={lang.code}
-                          onClick={() => {
-                            setCurrentLanguage(lang.code);
-                            setShowLangMenu(false);
-                          }}
-                          className={`w-full text-left px-4 py-2 text-sm transition-colors hover:bg-white/10 ${currentLanguage === lang.code ? 'text-emerald-400 font-bold' : 'text-white/70'
-                            }`}
-                        >
-                          {lang.name}
-                        </button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
+            {/* Theme Toggle */}
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={toggleTheme}
+              className="p-2 rounded-xl glass hover:bg-white/10 transition-colors"
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {theme === 'dark' ? (
+                <Sun className="w-5 h-5 text-amber-400" />
+              ) : (
+                <Moon className="w-5 h-5 text-indigo-600" />
+              )}
+            </motion.button>
 
             {/* User Button */}
             {user ? (
               <div className="relative">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="flex items-center gap-2 px-3 py-2 glass rounded-xl hover:bg-white/10 transition-colors"
                 >
                   <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center">
                     <User className="w-4 h-4 text-white" />
                   </div>
-                  <span className="text-white text-sm font-medium max-w-24 truncate">
+                  <span className="text-sm font-medium max-w-24 truncate text-main">
                     {user.name?.split(' ')[0]}
                   </span>
-                  <ChevronDown className={`w-4 h-4 text-white/60 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`w-4 h-4 text-muted transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
                 </motion.button>
 
-                <AnimatePresence>
-                  {showUserMenu && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="absolute right-0 top-full mt-2 w-48 glass-heavy rounded-xl overflow-hidden border border-white/10 z-[60]"
+                {/* User Dropdown */}
+                {showUserMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="absolute right-0 top-full mt-2 w-48 glass-heavy rounded-xl overflow-hidden border border-white/10"
+                  >
+                    <div className="p-3 border-b border-white/10">
+                      <p className="font-medium text-sm text-main">{user.name}</p>
+                      <p className="text-muted text-xs truncate">{user.email}</p>
+                    </div>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-red-500 hover:bg-red-500/10 transition-colors text-sm"
                     >
-                      <div className="p-3 border-b border-white/10">
-                        <p className="text-white font-medium text-sm">{user.name}</p>
-                        <p className="text-white/50 text-xs truncate">{user.email}</p>
-                      </div>
-                      <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-red-400 hover:bg-red-500/10 transition-colors text-sm"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        {t('sign_out')}
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                      <LogOut className="w-4 h-4" />
+                      Sign Out
+                    </button>
+                  </motion.div>
+                )}
               </div>
             ) : (
               <motion.button
@@ -186,22 +177,34 @@ const Navigation = ({ onSearch, onAuthClick, user, onLogout }) => {
                 className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-xl text-white text-sm font-medium shadow-lg"
               >
                 <User className="w-4 h-4" />
-                {t('sign_in')}
+                Sign In
               </motion.button>
             )}
           </div>
 
           {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden btn-icon"
-          >
-            {isMobileMenuOpen ? (
-              <X className="w-5 h-5 text-white" />
-            ) : (
-              <Menu className="w-5 h-5 text-white" />
-            )}
-          </button>
+          <div className="flex items-center gap-2 md:hidden">
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg glass"
+            >
+              {theme === 'dark' ? (
+                <Sun className="w-5 h-5 text-amber-400" />
+              ) : (
+                <Moon className="w-5 h-5 text-indigo-600" />
+              )}
+            </button>
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="btn-icon"
+            >
+              {isMobileMenuOpen ? (
+                <X className="w-5 h-5" />
+              ) : (
+                <Menu className="w-5 h-5" />
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Menu */}
@@ -219,55 +222,34 @@ const Navigation = ({ onSearch, onAuthClick, user, onLogout }) => {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={t('search_btn') + '...'}
+                  placeholder="Search crops..."
                   className="w-full pl-10 pr-4 py-3 glass-input rounded-xl text-white text-sm"
                 />
               </div>
             </form>
             <div className="flex flex-col gap-2">
               <MobileNavLink sectionId="dashboard" onClick={() => setIsMobileMenuOpen(false)}>
-                {t('dashboard')}
+                Dashboard
               </MobileNavLink>
               <MobileNavLink sectionId="weather" onClick={() => setIsMobileMenuOpen(false)}>
-                {t('weather')}
+                Weather
               </MobileNavLink>
               <MobileNavLink sectionId="schemes" onClick={() => setIsMobileMenuOpen(false)}>
-                {t('schemes')}
+                Schemes
               </MobileNavLink>
-
-              <div className="mt-4 p-4 glass rounded-xl">
-                <p className="text-white/50 text-xs uppercase mb-3 px-1 font-semibold tracking-wider">Select Language</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {languages.map((lang) => (
-                    <button
-                      key={lang.code}
-                      onClick={() => {
-                        setCurrentLanguage(lang.code);
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentLanguage === lang.code
-                        ? 'bg-emerald-500 text-white'
-                        : 'bg-white/5 text-white/70 hover:bg-white/10'
-                        }`}
-                    >
-                      {lang.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
 
               {user ? (
                 <>
                   <div className="mt-2 pt-2 border-t border-white/10">
                     <div className="px-4 py-2 text-white/60 text-sm">
-                      {t('welcome')}, <span className="text-white font-medium">{user.name}</span>
+                      Signed in as <span className="text-white font-medium">{user.name}</span>
                     </div>
                     <button
                       onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }}
                       className="w-full flex items-center gap-2 px-4 py-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors text-sm"
                     >
                       <LogOut className="w-4 h-4" />
-                      {t('sign_out')}
+                      Sign Out
                     </button>
                   </div>
                 </>
@@ -277,7 +259,7 @@ const Navigation = ({ onSearch, onAuthClick, user, onLogout }) => {
                   className="mt-2 flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-xl text-white text-sm font-medium"
                 >
                   <User className="w-4 h-4" />
-                  {t('sign_in')}
+                  Sign In / Register
                 </button>
               )}
             </div>
@@ -301,7 +283,7 @@ const NavLink = ({ children, sectionId }) => {
     <motion.button
       onClick={handleClick}
       whileHover={{ y: -2 }}
-      className="text-white/70 hover:text-white text-sm font-medium transition-colors relative group"
+      className="text-muted hover:text-main text-sm font-medium transition-colors relative group"
     >
       {children}
       <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-emerald-400 to-cyan-400 group-hover:w-full transition-all duration-300" />
@@ -324,7 +306,7 @@ const MobileNavLink = ({ children, onClick, sectionId }) => {
   return (
     <button
       onClick={handleClick}
-      className="block w-full text-left py-2 px-4 text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+      className="block w-full text-left py-2 px-4 text-muted hover:text-main hover:bg-white/5 rounded-lg transition-colors"
     >
       {children}
     </button>
